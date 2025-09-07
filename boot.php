@@ -12,11 +12,19 @@
 
 namespace Ynamite\ViteRex;
 
+use FriendsOfRedaxo\ViteRex\ModulePreview\Api\Generate;
+use FriendsOfRedaxo\ViteRex\ModulePreview\Api\Get;
+
+use rex;
 use rex_addon;
+use rex_api_function;
+use rex_article_slice;
 use rex_developer_manager;
 use rex_extension;
 use rex_extension_point;
 use rex_path;
+use rex_url;
+use rex_view;
 
 if (rex_addon::get('developer')->isAvailable()) {
     rex_developer_manager::setBasePath(rex_path::src());
@@ -30,4 +38,28 @@ rex_extension::register('YREWRITE_SEO_TAGS', function (rex_extension_point $ep) 
         $tags['robots'] = '<meta name="robots" content="noindex, nofollow" />';
     }
     $ep->setSubject($tags);
+});
+
+
+if (rex::isBackend() && rex::getUser()) {
+    rex_view::addJsFile($this->getAssetsUrl('ModulePreview.js'));
+}
+rex_api_function::register('module_preview_generate', Generate::class);
+rex_api_function::register('module_preview_get', Get::class);
+
+rex_extension::register('PACKAGES_INCLUDED', function () {
+
+    rex_extension::register('SLICE_BE_PREVIEW', function (rex_extension_point $ep) {
+        $sliceData = $ep->getParams();
+        $slice = rex_article_slice::getArticleSliceById($sliceData['slice_id']);
+        $updateDate = $slice->getValue('updatedate');
+        $endpoint = rex_url::backendController(array_merge(['rex-api-call' => 'module_preview_generate', 'updateDate' => $updateDate], $sliceData), false);
+        $ep->setSubject(sprintf(
+            '<iframe data-iframe-preview data-slice-id="%s" scrolling="no" src="%s" frameborder="0" style="border: 1px solid #ddd; border-radius: 4px; overflow: hidden; width: %s; height: %s !important"></iframe>',
+            $sliceData['slice_id'],
+            $endpoint,
+            '100%',
+            '400px'
+        ));
+    }, rex_extension::LATE);
 });

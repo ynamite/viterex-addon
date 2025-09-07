@@ -1,0 +1,2 @@
+function d(){const i=$("iframe[data-iframe-preview]"),a=e=>{var t,r;if(((t=e.data)==null?void 0:t.type)==="resize"&&((r=e.data)!=null&&r.id)){const s=i.filter('[data-slice-id="'.concat(e.data.id,'"]'))[0];if(!s)return;s.style.height=e.data.height+"px"}};window.removeEventListener("message",a),i.length&&window.addEventListener("message",a)}$(document).on("rex:ready rex:selectMedia rex:YForm_selectData",function(){d()});
+//# sourceMappingURL=ModulePreview.js.map
