@@ -57,11 +57,16 @@ rex_extension::register('PACKAGES_INCLUDED', function () {
         $slice = rex_article_slice::getArticleSliceById($sliceData['slice_id']);
         $updateDate = $slice->getValue('updatedate');
         $endpoint = rex_url::backendController(array_merge(['rex-api-call' => 'module_preview_generate', 'updateDate' => $updateDate], $sliceData), false);
-        $ep->setSubject(sprintf(
-            '<iframe data-iframe-preview data-slice-id="%s" scrolling="no" src="%s" frameborder="0" style="border-radius: 4px; overflow: hidden; width: %s"></iframe>',
+        $html = sprintf(
+            '<iframe data-iframe-preview data-slice-id="%s" scrolling="no"
+src="%s" frameborder="0" style="border-radius: 4px; overflow: hidden; width: %s" onload="this.nextElementSibling.remove()"></iframe>',
             $sliceData['slice_id'],
             $endpoint,
             '100%',
-        ));
+        );
+        $html .= '<div class="rex-visible rex-ajax-loader" style="position: absolute;">
+    <div class="rex-ajax-loader-element" style="width: 100px; height: 100px; margin: -50px 0 0 -50px;"></div>
+</div>';
+        $ep->setSubject($html);
     }, rex_extension::LATE);
 });
