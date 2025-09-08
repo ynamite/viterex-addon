@@ -23,12 +23,6 @@ final class ViteRex
 {
   private static ?self $instance = null;
 
-  // private string $distUri = '';
-  // private string $distPath = '';
-  // private string $viteServer = '';
-  // private string $viteEntryPoint = '';
-  // private string $viteManifestPath = '';
-
   private string $buildPath;
   private string $buildUrl;
   private string $devServerUrl;
