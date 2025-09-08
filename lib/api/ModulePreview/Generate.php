@@ -7,7 +7,6 @@ use Exception;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Psr\Cache\CacheItemPoolInterface;
 
-use rex;
 use rex_addon;
 use rex_api_function;
 use rex_api_exception;
@@ -15,8 +14,6 @@ use rex_api_result;
 use rex_article_content;
 use rex_clang;
 use rex_response;
-use rex_sql;
-use rex_yrewrite;
 
 use Ynamite\ViteRex\ViteRex;
 
@@ -24,12 +21,8 @@ class Generate extends rex_api_function
 {
 
   private CacheItemPoolInterface $cache;
-  private array $sliceData;
-  private ?array $slice = null;
   private int $articleId = 0;
   private int $clangId = 0;
-  private int $ctypeId = 0;
-  private int $moduleId = 0;
   private int $sliceId = 0;
   private int $updateDate = 0;
   private int $revision = 0;
@@ -50,8 +43,6 @@ class Generate extends rex_api_function
 
     $this->articleId = rex_get('article_id', 'int', 0);
     $this->clangId = rex_get('clang', 'int', 0);
-    $this->ctypeId = rex_get('ctype', 'int', 0);
-    $this->moduleId = rex_get('module_id', 'int', 0);
     $this->sliceId = rex_get('slice_id', 'int', 0);
     $this->updateDate = rex_get('updateDate', 'int', 0);
     $this->revision = rex_get('revision', 'int', 0);
@@ -75,7 +66,7 @@ class Generate extends rex_api_function
   public function getContent($ttl = self::DEFAULT_TTL): string
   {
     /** @var rex_addon $addon */
-    $addon = rex_addon::get('module_preview');
+    $addon = rex_addon::get('viterex');
 
     $this->cache = new FilesystemAdapter("article-{$this->articleId}", self::DEFAULT_TTL, $addon->getCachePath());
     $cacheKey = md5($this->articleId . $this->sliceId . $this->updateDate . $this->revision);
@@ -112,13 +103,13 @@ class Generate extends rex_api_function
     $assets = ViteRex::getAssets();
 
     $htmlTemplate = '<!DOCTYPE html>
-<html lang="' . $langCode . '">
+<html lang="' . $langCode . '" class="[scrollbar-gutter:_auto]">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     ' . $assets['preload'] . $assets['criticalCSS'] . $assets['css'] . '
 </head>
-<body class="!min-h-0">
+<body class="min-h-0">
     ' . $html . $assets['js'] . '
     <script>
       function sendHeight() {

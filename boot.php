@@ -32,6 +32,9 @@ if (rex_addon::get('developer')->isAvailable()) {
 
 new ViteRex();
 
+/**
+ * Check if we are in production deployment mode and set robots meta tag accordingly.
+ */
 rex_extension::register('YREWRITE_SEO_TAGS', function (rex_extension_point $ep) {
     $tags = $ep->getSubject();
     if (!ViteRex::isProductionDeployment()) {
@@ -40,13 +43,13 @@ rex_extension::register('YREWRITE_SEO_TAGS', function (rex_extension_point $ep) 
     $ep->setSubject($tags);
 });
 
-
+/**
+ * Add preview iframe to slice preview view in backend.
+ */
 if (rex::isBackend() && rex::getUser()) {
     rex_view::addJsFile($this->getAssetsUrl('ModulePreview.js'));
 }
 rex_api_function::register('module_preview_generate', Generate::class);
-rex_api_function::register('module_preview_get', Get::class);
-
 rex_extension::register('PACKAGES_INCLUDED', function () {
 
     rex_extension::register('SLICE_BE_PREVIEW', function (rex_extension_point $ep) {
@@ -55,11 +58,10 @@ rex_extension::register('PACKAGES_INCLUDED', function () {
         $updateDate = $slice->getValue('updatedate');
         $endpoint = rex_url::backendController(array_merge(['rex-api-call' => 'module_preview_generate', 'updateDate' => $updateDate], $sliceData), false);
         $ep->setSubject(sprintf(
-            '<iframe data-iframe-preview data-slice-id="%s" scrolling="no" src="%s" frameborder="0" style="border: 1px solid #ddd; border-radius: 4px; overflow: hidden; width: %s; height: %s !important"></iframe>',
+            '<iframe data-iframe-preview data-slice-id="%s" scrolling="no" src="%s" frameborder="0" style="border-radius: 4px; overflow: hidden; width: %s"></iframe>',
             $sliceData['slice_id'],
             $endpoint,
             '100%',
-            '400px'
         ));
     }, rex_extension::LATE);
 });
