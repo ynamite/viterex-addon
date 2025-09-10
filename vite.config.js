@@ -47,7 +47,11 @@ export default defineConfig({
     rollupOptions: {
       input: {
         // Main bundle (CSS + backend JS)
-        ModulePreview: resolve(__dirname, 'assets-src/main.js')
+        ModulePreview: resolve(__dirname, 'assets-src/ModulePreview.js'),
+        ModulePreviewPoster: resolve(
+          __dirname,
+          'assets-src/ModulePreviewPoster.js'
+        )
       },
       output: {
         // Naming pattern for assets
