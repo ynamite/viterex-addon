@@ -8,11 +8,13 @@ use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Psr\Cache\CacheItemPoolInterface;
 
 use rex_addon;
+use rex_addon_interface;
 use rex_api_function;
 use rex_api_exception;
 use rex_api_result;
 use rex_article_content;
 use rex_clang;
+use rex_file;
 use rex_response;
 
 use Ynamite\ViteRex\ViteRex;
@@ -20,6 +22,7 @@ use Ynamite\ViteRex\ViteRex;
 class Generate extends rex_api_function
 {
 
+  private rex_addon_interface $addon;
   private CacheItemPoolInterface $cache;
   private int $articleId = 0;
   private int $clangId = 0;
@@ -66,9 +69,9 @@ class Generate extends rex_api_function
   public function getContent($ttl = self::DEFAULT_TTL): string
   {
     /** @var rex_addon $addon */
-    $addon = rex_addon::get('viterex');
+    $this->addon = rex_addon::get('viterex');
 
-    $this->cache = new FilesystemAdapter("article-{$this->articleId}", self::DEFAULT_TTL, $addon->getCachePath());
+    $this->cache = new FilesystemAdapter("article-{$this->articleId}", self::DEFAULT_TTL, $this->addon->getCachePath());
     $cacheKey = md5($this->articleId . $this->sliceId . $this->updateDate . $this->revision);
     $cachedItem = $this->cache->getItem($cacheKey);
 
@@ -101,6 +104,8 @@ class Generate extends rex_api_function
     $clang = rex_clang::get($this->clangId);
     $langCode = $clang ? $clang->getCode() : 'en';
     $assets = ViteRex::getAssets();
+    $posterJsFileContent = rex_file::get($this->addon->getAssetsPath('ModulePreviewPoster.js'));
+    $posterJsFileContent = str_replace('VITEREX_PLACEHOLDER_SLICE_ID', $this->sliceId, $posterJsFileContent);
 
     $htmlTemplate = '<!DOCTYPE html>
 <html lang="' . $langCode . '" class="[scrollbar-gutter:_auto]">
@@ -112,14 +117,7 @@ class Generate extends rex_api_function
 <body class="min-h-0">
     ' . $html . $assets['js'] . '
     <script>
-      function sendHeight() {
-        const height = document.body.scrollHeight;
-        parent.postMessage({ type: "resize", id: ' . $this->sliceId . ', height }, "*");
-      }
-
-      window.addEventListener("load", sendHeight);
-      window.addEventListener("resize", sendHeight);
-      setInterval(sendHeight, 1000); // send height every second
+' . $posterJsFileContent . '
     </script>    
 </body>
 </html>';

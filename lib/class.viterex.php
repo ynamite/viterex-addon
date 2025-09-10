@@ -85,11 +85,13 @@ final class ViteRex
     // preload webfonts
     $webfontsPreload = $instance->getWebfontsPreload();
 
+    $criticalCSS = $instance->getCriticalCSS();
+
     if ($instance->isDev) {
       return [
         'preload' => $webfontsPreload,
-        'criticalCSS' => '',
-        'css' => '<link rel="stylesheet" href="' . self::getAssetsUrl() . 'css/style.css" media="all">', // Vite injects CSS in dev mode
+        'criticalCSS' => $criticalCSS,
+        'css' => '', // Vite injects CSS in dev mode
         'js' => '<script type="module" src="' . $instance->devServerUrl . '/@vite/client"></script>' .
           '<script type="module" src="' . $instance->devServerUrl . $instance->entryPoint . '"></script>'
       ];
@@ -99,9 +101,6 @@ final class ViteRex
     $manifest = $instance->getManifestArray();
     $entryPoint = trim($instance->entryPoint, '/');
     $entry = $manifest[$entryPoint];
-
-    $criticalPath = $instance->buildPath . "/assets/critical.css";
-    $criticalCSS = file_exists($criticalPath) ? '<style>' . rex_file::get($criticalPath) . '</style>' : '';
 
     return [
       'preload' => $webfontsPreload,
@@ -139,6 +138,13 @@ final class ViteRex
       }
     }
     return implode("\n", $preloadArray);
+  }
+
+  public function getCriticalCSS(): string
+  {
+    $instance = self::factory();
+    $criticalPath = $instance->buildPath . "/assets/critical.css";
+    return file_exists($criticalPath) ? '<style>' . rex_file::get($criticalPath) . '</style>' : '';
   }
 
   /**

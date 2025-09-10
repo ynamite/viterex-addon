@@ -12,8 +12,7 @@
 
 namespace Ynamite\ViteRex;
 
-use FriendsOfRedaxo\ViteRex\ModulePreview\Api\Generate;
-use FriendsOfRedaxo\ViteRex\ModulePreview\Api\Get;
+use FriendsOfRedaxo\ViteRex\ModulePreview;
 
 use rex;
 use rex_addon;
@@ -49,24 +48,8 @@ rex_extension::register('YREWRITE_SEO_TAGS', function (rex_extension_point $ep) 
 if (rex::isBackend() && rex::getUser()) {
     rex_view::addJsFile($this->getAssetsUrl('ModulePreview.js'));
 }
-rex_api_function::register('module_preview_generate', Generate::class);
+rex_api_function::register('module_preview_generate', ModulePreview\Api\Generate::class);
 rex_extension::register('PACKAGES_INCLUDED', function () {
 
-    rex_extension::register('SLICE_BE_PREVIEW', function (rex_extension_point $ep) {
-        $sliceData = $ep->getParams();
-        $slice = rex_article_slice::getArticleSliceById($sliceData['slice_id']);
-        $updateDate = $slice->getValue('updatedate');
-        $endpoint = rex_url::backendController(array_merge(['rex-api-call' => 'module_preview_generate', 'updateDate' => $updateDate], $sliceData), false);
-        $html = sprintf(
-            '<iframe data-iframe-preview data-slice-id="%s" scrolling="no"
-src="%s" frameborder="0" style="border-radius: 4px; overflow: hidden; width: %s" onload="this.nextElementSibling.remove()"></iframe>',
-            $sliceData['slice_id'],
-            $endpoint,
-            '100%',
-        );
-        $html .= '<div class="rex-visible rex-ajax-loader" style="position: absolute;">
-    <div class="rex-ajax-loader-element" style="width: 100px; height: 100px; margin: -50px 0 0 -50px;"></div>
-</div>';
-        $ep->setSubject($html);
-    }, rex_extension::LATE);
+    rex_extension::register('SLICE_BE_PREVIEW', ModulePreview\Extension::register(...), rex_extension::LATE);
 });
