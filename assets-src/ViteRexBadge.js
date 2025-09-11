@@ -21,7 +21,7 @@ if (!scriptTag) {
   badge.innerHTML = `<div class="${classes.badge}">
     <div class="${classes.label}"><span><b>Vite</b>Rex</span><span class="${classes.version}">${version}</span></div>
     <div class="${classes.versionWrapper}">
-      <span class="${classes.label}">Dev</span>
+      <span class="${classes.label}">${isDev ? 'Dev' : 'Prod'}</span>
       <span class="${classes.dot}"></span>
     </div>
     <div class="${classes.label}"><span><b>R</b></span><span class="${classes.version}">${redaxoVersion}</span></div>
