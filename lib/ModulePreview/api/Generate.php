@@ -50,6 +50,8 @@ class Generate extends rex_api_function
     $this->updateDate = rex_get('updateDate', 'int', 0);
     $this->revision = rex_get('revision', 'int', 0);
 
+    $this->cacheActive = !ViteRex::isDevMode();
+
     $html = $this->getContent();
 
     // $this->domainUrl = rex_yrewrite::getCurrentDomain()->getUrl();
@@ -108,14 +110,17 @@ class Generate extends rex_api_function
     $posterJsFileContent = str_replace('VITEREX_PLACEHOLDER_SLICE_ID', $this->sliceId, $posterJsFileContent);
 
     $htmlTemplate = '<!DOCTYPE html>
-<html lang="' . $langCode . '" class="[scrollbar-gutter:_auto]">
+<html lang="' . $langCode . '" class="pointer-events-none [scrollbar-gutter:_auto]">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     ' . $assets['preload'] . $assets['criticalCSS'] . $assets['css'] . '
 </head>
-<body class="min-h-0">
-    ' . $html . $assets['js'] . '
+<body class="bg-body min-h-0">
+    <div id="viterex-slice">
+    ' . $html . '
+    </div>
+    ' . $assets['js'] . '
     <script>
 ' . $posterJsFileContent . '
     </script>    

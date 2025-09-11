@@ -3,6 +3,7 @@
 const SLICE_ID = VITEREX_PLACEHOLDER_SLICE_ID
 const DEBOUNCE_DELAY = 150
 const PERIODIC_CHECK_INTERVAL = 5000
+const SLICE_WRAPPER = document.getElementById('viterex-slice')
 
 let lastHeight = 0
 let debounceTimer = null
@@ -16,20 +17,19 @@ function debounce(func, delay) {
   }
 }
 
-// Get current document height
+// Get current SLICE_WRAPPER height
 function getCurrentHeight() {
   return Math.max(
-    document.body.scrollHeight,
-    document.body.offsetHeight,
-    document.documentElement.clientHeight,
-    document.documentElement.scrollHeight,
-    document.documentElement.offsetHeight
+    SLICE_WRAPPER.scrollHeight,
+    SLICE_WRAPPER.offsetHeight,
+    SLICE_WRAPPER.clientHeight
   )
 }
 
 // Send height to parent if it has changed
 function sendHeight() {
   const currentHeight = getCurrentHeight()
+  console.log(`Sending height: ${currentHeight}px`)
 
   // Only send if height has actually changed
   if (currentHeight !== lastHeight) {
