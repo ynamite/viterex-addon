@@ -33,7 +33,7 @@ final class ViteRex
   public function __construct()
   {
     $dotenv = Dotenv::createImmutable(rex_path::base(), ['.env', '.env.local', '.env.development', '.env.production'], false);
-    $dotenv->safeLoad();
+    $dotenv->load();
 
     $this->buildUrl = $_ENV['VITE_DIST_DIR'] ?: '/dist';
     $this->buildPath = isset($_ENV['VITE_PUBLIC_DIR']) ? rex_path::base(ltrim($_ENV['VITE_PUBLIC_DIR'], '/') . $this->buildUrl) : rex_path::base('public' . $this->buildUrl);
