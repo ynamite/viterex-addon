@@ -12,8 +12,6 @@
 
 namespace Ynamite\ViteRex;
 
-use FriendsOfRedaxo\ViteRex\ModulePreview;
-
 use rex;
 use rex_addon;
 use rex_addon_interface;
@@ -51,12 +49,9 @@ rex_extension::register('YREWRITE_SEO_TAGS', function (rex_extension_point $ep) 
 
 if (rex_backend_login::hasSession() && !ViteRex::isProductionDeployment()) {
     rex_extension::register('OUTPUT_FILTER', function (rex_extension_point $ep) use ($addon) {
-
-        $version = $addon->getVersion();
         $content = $ep->getSubject();
-        $script = '<script type="module" src="' . $addon->getAssetsUrl('ViteRexBadge.js') . '" id="viterex-badge-script" data-is-dev="' . (ViteRex::isDevMode() ? 'true' : 'false') . '" data-version="' . $version . '" data-rex-version="' . rex::getVersion() . '"></script>';
-        $style = '<link rel="stylesheet" href="' . $addon->getAssetsUrl('ViteRexBadge.css') . '">';
-        $content = str_ireplace('</body>', $script . $style . '</body>', $content);
+        $badge = Badge::get();
+        $content = str_ireplace('</body>', $badge . '</body>', $content);
         $ep->setSubject($content);
     });
 }

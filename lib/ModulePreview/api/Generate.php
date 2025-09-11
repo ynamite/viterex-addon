@@ -1,6 +1,6 @@
 <?php
 
-namespace FriendsOfRedaxo\ViteRex\ModulePreview\Api;
+namespace Ynamite\ViteRex\ModulePreview\Api;
 
 use Exception;
 
@@ -18,6 +18,7 @@ use rex_file;
 use rex_response;
 
 use Ynamite\ViteRex\ViteRex;
+use Ynamite\ViteRex\Badge;
 
 class Generate extends rex_api_function
 {
@@ -70,7 +71,7 @@ class Generate extends rex_api_function
    */
   public function getContent($ttl = self::DEFAULT_TTL): string
   {
-    /** @var rex_addon $addon */
+    /** @var rex_addon_interface $addon */
     $this->addon = rex_addon::get('viterex');
 
     $this->cache = new FilesystemAdapter("article-{$this->articleId}", self::DEFAULT_TTL, $this->addon->getCachePath());
@@ -108,22 +109,23 @@ class Generate extends rex_api_function
     $assets = ViteRex::getAssets();
     $posterJsFileContent = rex_file::get($this->addon->getAssetsPath('ModulePreviewPoster.js'));
     $posterJsFileContent = str_replace('VITEREX_PLACEHOLDER_SLICE_ID', $this->sliceId, $posterJsFileContent);
+    $badge = Badge::get();
 
     $htmlTemplate = '<!DOCTYPE html>
-<html lang="' . $langCode . '" class="pointer-events-none [scrollbar-gutter:_auto]">
+<html lang="' . $langCode . '" class="[scrollbar-gutter:_auto]">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     ' . $assets['preload'] . $assets['criticalCSS'] . $assets['css'] . '
 </head>
 <body class="bg-body min-h-0">
-    <div id="viterex-slice">
+    <div id="viterex-slice" class="pointer-events-none">
     ' . $html . '
     </div>
     ' . $assets['js'] . '
     <script>
 ' . $posterJsFileContent . '
-    </script>    
+    </script>' . $badge . ' 
 </body>
 </html>';
     return $htmlTemplate;

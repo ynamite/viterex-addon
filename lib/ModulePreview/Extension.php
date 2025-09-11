@@ -1,6 +1,6 @@
 <?php
 
-namespace FriendsOfRedaxo\ViteRex\ModulePreview;
+namespace Ynamite\ViteRex\ModulePreview;
 
 use rex_article_slice;
 use rex_extension_point;
