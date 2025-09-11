@@ -17,8 +17,8 @@ use rex_clang;
 use rex_file;
 use rex_response;
 
+use Ynamite\MassifSettings;
 use Ynamite\ViteRex\ViteRex;
-use Ynamite\ViteRex\Badge;
 
 class Generate extends rex_api_function
 {
@@ -104,12 +104,12 @@ class Generate extends rex_api_function
    */
   private function prepareOutput(string $html): string
   {
+    $html = MassifSettings\Utils::replaceStrings($html);
     $clang = rex_clang::get($this->clangId);
     $langCode = $clang ? $clang->getCode() : 'en';
     $assets = ViteRex::getAssets();
     $posterJsFileContent = rex_file::get($this->addon->getAssetsPath('ModulePreviewPoster.js'));
     $posterJsFileContent = str_replace('VITEREX_PLACEHOLDER_SLICE_ID', $this->sliceId, $posterJsFileContent);
-    $badge = Badge::get();
 
     $htmlTemplate = '<!DOCTYPE html>
 <html lang="' . $langCode . '" class="[scrollbar-gutter:_auto]">
@@ -125,7 +125,7 @@ class Generate extends rex_api_function
     ' . $assets['js'] . '
     <script>
 ' . $posterJsFileContent . '
-    </script>' . $badge . ' 
+    </script> 
 </body>
 </html>';
     return $htmlTemplate;
