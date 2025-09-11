@@ -11,7 +11,6 @@ use rex_be_controller;
 use rex_file;
 use rex_finder;
 use rex_path;
-use rex_url;
 use rex_ydeploy;
 
 use function file_exists;
@@ -243,7 +242,17 @@ final class ViteRex
   public static function getAssetsUrl(): string
   {
     $instance = self::factory();
-    return $instance->isDev ? $instance->devServerUrl . rex_url::base('src/assets/') : $instance->buildUrl . '/assets/';
+    return $instance->isDev ? $instance->devServerUrl . '/src/assets/' : $instance->buildUrl . '/assets/';
+  }
+
+  /**
+   *  check if dev mode is active
+   *  @return bool
+   */
+  public static function isDevMode(): bool
+  {
+    $instance = self::factory();
+    return $instance->isDev;
   }
 
   /**

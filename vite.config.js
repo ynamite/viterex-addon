@@ -47,6 +47,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         // Main bundle (CSS + backend JS)
+        ViteRexBadge: resolve(__dirname, 'assets-src/ViteRexBadge.js'),
         ModulePreview: resolve(__dirname, 'assets-src/ModulePreview.js'),
         ModulePreviewPoster: resolve(
           __dirname,
