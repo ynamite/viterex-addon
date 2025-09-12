@@ -32,7 +32,6 @@ class Generate extends rex_api_function
   private int $revision = 0;
 
   protected const DEFAULT_TTL = 3600; // Default TTL for cache items (in seconds)
-  protected string $domainUrl;
   protected $published = false;
 
   public bool $cacheActive = true;
@@ -54,9 +53,6 @@ class Generate extends rex_api_function
     $this->cacheActive = !ViteRex::isDevMode();
 
     $html = $this->getContent();
-
-    // $this->domainUrl = rex_yrewrite::getCurrentDomain()->getUrl();
-    // $url = "@preview/?sliceId={$this->sliceData['slice_id']}&updateDate={$this->sliceData['update_date']}";
 
     return $this->sendResponse($html);
   }
