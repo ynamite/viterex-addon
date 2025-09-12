@@ -7,11 +7,15 @@ namespace Ynamite\ViteRex;
 
 use Dotenv\Dotenv;
 use rex;
+use rex_article;
 use rex_be_controller;
+use rex_clang;
 use rex_file;
 use rex_finder;
 use rex_path;
 use rex_ydeploy;
+
+use Url\Url;
 
 use function file_exists;
 use function str_starts_with;
@@ -141,9 +145,22 @@ final class ViteRex
 
   public function getCriticalCSS(): string
   {
+    $output = '';
+    if (!file_exists($this->manifestPath)) {
+      return $output;
+    }
     $instance = self::factory();
-    $criticalPath = $instance->buildPath . "/assets/critical.css";
-    return file_exists($criticalPath) ? '<style>' . rex_file::get($criticalPath) . '</style>' : '';
+    $article_id = rex_article::getCurrentId();
+    $clang_id = rex_clang::getCurrentId();
+    $manager = Url::resolveCurrent();
+    $url = $manager ? $manager->getUrl()->getPath() : rex_getUrl($article_id, $clang_id);
+    $shorthash = substr(hash('sha256', "{$article_id}-{$clang_id}-{$url}"), 0, 8);
+    $criticalPath = $instance->buildPath . "/assets/critical-{$shorthash}.css";
+    if (file_exists($criticalPath)) {
+      $output = "<!-- Critical CSS {$shorthash} for article_id: {$article_id}, clang_id: {$clang_id}, url: {$url} -->\n";
+      $output .= file_exists($criticalPath) ? '<style>' . rex_file::get($criticalPath) . '</style>' : '';
+    }
+    return $output;
   }
 
   /**

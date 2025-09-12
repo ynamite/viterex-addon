@@ -46,7 +46,6 @@ rex_extension::register('YREWRITE_SEO_TAGS', function (rex_extension_point $ep) 
 /**
  * Add ViteRex-Badge
  */
-
 if (rex_backend_login::hasSession() && !ViteRex::isProductionDeployment()) {
     rex_extension::register('OUTPUT_FILTER', function (rex_extension_point $ep) use ($addon) {
         $content = $ep->getSubject();
@@ -55,10 +54,10 @@ if (rex_backend_login::hasSession() && !ViteRex::isProductionDeployment()) {
         $ep->setSubject($content);
     });
 }
+
 /**
  * Add preview iframe to slice preview view in backend.
  */
-
 if (rex::isBackend() && rex::getUser()) {
     rex_view::addJsFile($this->getAssetsUrl('ModulePreview.js'));
 }
@@ -67,3 +66,8 @@ rex_extension::register('PACKAGES_INCLUDED', function () {
 
     rex_extension::register('SLICE_BE_PREVIEW', ModulePreview\Extension::register(...), rex_extension::LATE);
 });
+
+/**
+ * Register api function to get all active routes for all languages.
+ */
+rex_api_function::register('get_critical_routes', Critical\Api\Routes::class);
