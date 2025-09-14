@@ -27,7 +27,7 @@ if (rex_addon::get('developer')->isAvailable()) {
     rex_developer_manager::setBasePath(rex_path::src());
 }
 
-new ViteRex();
+new Server();
 
 /** @var rex_addon_interface $addon */
 $addon = $this;
@@ -37,7 +37,7 @@ $addon = $this;
  */
 rex_extension::register('YREWRITE_SEO_TAGS', function (rex_extension_point $ep) {
     $tags = $ep->getSubject();
-    if (!ViteRex::isProductionDeployment()) {
+    if (!Server::isProductionDeployment()) {
         $tags['robots'] = '<meta name="robots" content="noindex, nofollow" />';
     }
     $ep->setSubject($tags);
@@ -46,7 +46,7 @@ rex_extension::register('YREWRITE_SEO_TAGS', function (rex_extension_point $ep) 
 /**
  * Add ViteRex-Badge
  */
-if (rex_backend_login::hasSession() && !ViteRex::isProductionDeployment()) {
+if (rex_backend_login::hasSession() && !Server::isProductionDeployment()) {
     rex_extension::register('OUTPUT_FILTER', function (rex_extension_point $ep) use ($addon) {
         $content = $ep->getSubject();
         $badge = Badge::get();

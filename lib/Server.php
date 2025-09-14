@@ -7,22 +7,17 @@ namespace Ynamite\ViteRex;
 
 use Dotenv\Dotenv;
 use rex;
-use rex_article;
 use rex_be_controller;
-use rex_clang;
 use rex_file;
-use rex_finder;
 use rex_path;
 use rex_ydeploy;
-
-use Url\Url;
 
 use function file_exists;
 use function str_starts_with;
 use function strtolower;
 
 /** @api */
-final class ViteRex
+class Server
 {
   private static ?self $instance = null;
 
@@ -44,6 +39,7 @@ final class ViteRex
     $this->devServerUrl = isset($_ENV['VITE_DEV_SERVER']) ? $_ENV['VITE_DEV_SERVER'] . ':' . $_ENV['VITE_DEV_SERVER_PORT'] : 'http://localhost:3000';
     $this->entryPoint = $_ENV['VITE_ENTRY_POINT'] ?: '/index.js';
     $this->manifestPath = $this->buildPath . '/.vite/manifest.json';
+    $this->manifest = $this->getManifestArray();
 
     $this->isDev = $this->isDevServerRunning();
     // dd($this->devServerUrl);
@@ -78,92 +74,6 @@ final class ViteRex
   }
 
   /**
-   *  outputs tags and paths for assets in dev and production environments
-   *  @return array<string> html
-   */
-  public static function getAssets(): array
-  {
-    $instance = self::factory();
-
-    // preload webfonts
-    $webfontsPreload = $instance->getWebfontsPreload();
-
-    $criticalCSS = $instance->getCriticalCSS();
-
-    if ($instance->isDev) {
-      return [
-        'preload' => $webfontsPreload,
-        'criticalCSS' => $criticalCSS,
-        'css' => '', // Vite injects CSS in dev mode
-        'js' => '<script type="module" src="' . $instance->devServerUrl . '/@vite/client"></script>' .
-          '<script type="module" src="' . $instance->devServerUrl . $instance->entryPoint . '"></script>'
-      ];
-    }
-
-    // Production: Read manifest.json
-    $manifest = $instance->getManifestArray();
-    $entryPoint = trim($instance->entryPoint, '/');
-    $entry = $manifest[$entryPoint];
-
-    return [
-      'preload' => $webfontsPreload,
-      'criticalCSS' => $criticalCSS,
-      'css' => '<link rel="stylesheet" href="' . $instance->buildUrl . '/' . $entry['css'][0] . '" media="print" onload="this.media=\'all\'">',
-      'js' => '<script type="module" src="' . $instance->buildUrl . '/' . $entry['file'] . '"></script>'
-    ];
-  }
-
-  /**
-   * Get preload links for webfonts
-   * 
-   * @return string
-   */
-  public function getWebfontsPreload(): string
-  {
-    $preloadArray = [];
-
-    if ($this->isDev) {
-      foreach (rex_finder::factory(self::getAssetsPath() . 'fonts')->filesOnly()->sort() as $file) {
-        $preloadArray[] = '<link rel="preload" href="' . self::getAssetsUrl() . 'fonts/' . $file->getFilename() . '" as="font" type="font/' . $file->getExtension() . '" crossorigin>';
-      }
-    } else {
-      $manifest = $this->getManifestArray();
-      $entryPoint = trim($this->entryPoint, '/');
-      $entry = $manifest[$entryPoint];
-
-      // Preload web fonts
-      foreach ($entry['assets'] as $asset) {
-        // check if is font woff2|woff|ttf|otf
-        $extension = pathinfo($asset, PATHINFO_EXTENSION);
-        if (in_array(strtolower($extension), ['woff2', 'woff', 'ttf', 'otf'])) {
-          $preloadArray[] = '<link rel="preload" href="' . $this->buildUrl . '/' . $asset . '" as="font" type="font/' . $extension . '" crossorigin>';
-        }
-      }
-    }
-    return implode("\n", $preloadArray);
-  }
-
-  public function getCriticalCSS(): string
-  {
-    $output = '';
-    if (!file_exists($this->manifestPath)) {
-      return $output;
-    }
-    $instance = self::factory();
-    $article_id = rex_article::getCurrentId();
-    $clang_id = rex_clang::getCurrentId();
-    $manager = Url::resolveCurrent();
-    $url = $manager ? $manager->getUrl()->getPath() : rex_getUrl($article_id, $clang_id);
-    $shorthash = substr(hash('sha256', "{$article_id}-{$clang_id}-{$url}"), 0, 8);
-    $criticalPath = $instance->buildPath . "/assets/critical-{$shorthash}.css";
-    if (file_exists($criticalPath)) {
-      $output = "<!-- Critical CSS {$shorthash} for article_id: {$article_id}, clang_id: {$clang_id}, url: {$url} -->\n";
-      $output .= file_exists($criticalPath) ? '<style>' . rex_file::get($criticalPath) . '</style>' : '';
-    }
-    return $output;
-  }
-
-  /**
    *  get manifest data as array
    *  @return array
    */
@@ -172,10 +82,7 @@ final class ViteRex
     if (!empty($this->manifest)) {
       return $this->manifest;
     }
-    $manifest = rex_file::get($this->manifestPath);
-    if (!$manifest) {
-      $this->manifest = [];
-    }
+    $manifest = rex_file::get($this->manifestPath) ?: '{}';
     $this->manifest = array_reverse(json_decode($manifest, true));
     return $this->manifest;
   }
@@ -189,6 +96,16 @@ final class ViteRex
   public static function setValue($key, $value): void
   {
     self::${$key} = $value;
+  }
+
+  /**
+   *  gets key
+   *  @param string $key Key to set
+   *  @return mixed
+   */
+  public function getValue($key): mixed
+  {
+    return $this->{$key};
   }
 
   /**

@@ -18,7 +18,8 @@ use rex_file;
 use rex_response;
 
 use Ynamite\MassifSettings;
-use Ynamite\ViteRex\ViteRex;
+use Ynamite\ViteRex\Assets;
+use Ynamite\ViteRex\Server;
 
 class Generate extends rex_api_function
 {
@@ -50,7 +51,7 @@ class Generate extends rex_api_function
     $this->updateDate = rex_get('updateDate', 'int', 0);
     $this->revision = rex_get('revision', 'int', 0);
 
-    $this->cacheActive = !ViteRex::isDevMode();
+    $this->cacheActive = !Server::isDevMode();
 
     $html = $this->getContent();
 
@@ -103,7 +104,7 @@ class Generate extends rex_api_function
     $html = MassifSettings\Utils::replaceStrings($html);
     $clang = rex_clang::get($this->clangId);
     $langCode = $clang ? $clang->getCode() : 'en';
-    $assets = ViteRex::getAssets();
+    $assets = Assets::get();
     $posterJsFileContent = rex_file::get($this->addon->getAssetsPath('ModulePreviewPoster.js'));
     $posterJsFileContent = str_replace('VITEREX_PLACEHOLDER_SLICE_ID', $this->sliceId, $posterJsFileContent);
 
