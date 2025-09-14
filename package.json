@@ -1,6 +1,6 @@
 {
   "name": "viterex-assets",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Asset build for ViteRex Addon",
   "scripts": {
     "version:sync": "node scripts/sync-version.js",
