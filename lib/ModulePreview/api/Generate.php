@@ -102,6 +102,8 @@ class Generate extends rex_api_function
   private function prepareOutput(string $html): string
   {
     $html = MassifSettings\Utils::replaceStrings($html);
+    $html = str_replace(['<details>'], ['<details open>'], $html);
+    $html = preg_replace('/<details name="([^"]+)">/', '<details open>', $html);
     $clang = rex_clang::get($this->clangId);
     $langCode = $clang ? $clang->getCode() : 'en';
     $assets = Assets::get();
