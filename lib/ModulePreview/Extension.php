@@ -15,8 +15,8 @@ class Extension
     $updateDate = $slice->getValue('updatedate');
     $endpoint = rex_url::backendController(array_merge(['rex-api-call' => 'module_preview_generate', 'updateDate' => $updateDate], $sliceData), false);
     $html = sprintf(
-      '<div class="border-radius: 4px;"><iframe data-iframe-preview data-slice-id="%s" scrolling="no" loading="lazy"
-src="%s" frameborder="0" style="overflow: hidden; width: %s; height: 200px; visibility: hidden;" onload="this.style.visibility = \'visible\'; this.closest(\'.panel-body\').querySelector(\'.rex-ajax-loader\')?.remove()"></iframe></div>',
+      '<div class="border-radius: 4px; min-height: 300px"><iframe data-iframe-preview data-slice-id="%s" scrolling="yes" loading="lazy"
+src="%s" frameborder="0" style="overflow: hidden; overflow-y: scroll; width: %s; height: 300px; visibility: hidden;" onload="this.style.visibility = \'visible\'; this.closest(\'.panel-body\').querySelector(\'.rex-ajax-loader\')?.remove()"></iframe></div>',
       $sliceData['slice_id'],
       $endpoint,
       '100%',

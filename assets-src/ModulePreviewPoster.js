@@ -1,36 +1,38 @@
 'use strict'
 
 const SLICE_ID = VITEREX_PLACEHOLDER_SLICE_ID
-const DEBOUNCE_DELAY = 150
+const DEBOUNCE_DELAY = 50
 const PERIODIC_CHECK_INTERVAL = 5000
 const SLICE_WRAPPER = document.getElementById('viterex-slice')
 
 let lastHeight = 0
-let debounceTimer = null
 let periodicTimer = null
+let debounceTimer = null
 
-// Debounce function for resize events
 function debounce(func, delay) {
   return function (...args) {
+    const context = this
     clearTimeout(debounceTimer)
-    debounceTimer = setTimeout(() => func.apply(this, args), delay)
+    debounceTimer = setTimeout(() => func.apply(context, args), delay)
   }
 }
 
 // Get current SLICE_WRAPPER height
 function getCurrentHeight() {
-  return Math.max(
-    SLICE_WRAPPER.scrollHeight,
-    SLICE_WRAPPER.offsetHeight,
-    SLICE_WRAPPER.clientHeight
+  return Math.min(
+    Math.max(
+      300,
+      SLICE_WRAPPER.scrollHeight,
+      SLICE_WRAPPER.offsetHeight,
+      SLICE_WRAPPER.clientHeight
+    ),
+    720
   )
 }
 
 // Send height to parent if it has changed
 function sendHeight() {
   const currentHeight = getCurrentHeight()
-  console.log(`Sending height: ${currentHeight}px`)
-
   // Only send if height has actually changed
   if (currentHeight !== lastHeight) {
     lastHeight = currentHeight
@@ -60,8 +62,8 @@ function init() {
   cleanup()
 
   // Add event listeners
-  window.addEventListener('load', sendHeight)
-  window.addEventListener('resize', debouncedSendHeight)
+  // window.addEventListener('load', sendHeight)
+  // window.addEventListener('resize', debouncedSendHeight)
 
   // Optional: Listen for DOM mutations that might change height
   if ('MutationObserver' in window) {
@@ -78,7 +80,7 @@ function init() {
   }
 
   // Periodic check for height changes (fallback)
-  periodicTimer = setInterval(sendHeight, PERIODIC_CHECK_INTERVAL)
+  // periodicTimer = setInterval(sendHeight, PERIODIC_CHECK_INTERVAL)
 
   // Send initial height
   if (document.readyState === 'loading') {
@@ -93,11 +95,6 @@ function cleanup() {
   window.removeEventListener('load', sendHeight)
   window.removeEventListener('resize', debouncedSendHeight)
   document.removeEventListener('DOMContentLoaded', sendHeight)
-
-  if (debounceTimer) {
-    clearTimeout(debounceTimer)
-    debounceTimer = null
-  }
 
   if (periodicTimer) {
     clearInterval(periodicTimer)

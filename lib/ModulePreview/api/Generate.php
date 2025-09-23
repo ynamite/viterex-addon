@@ -17,7 +17,7 @@ use rex_clang;
 use rex_file;
 use rex_response;
 
-use Ynamite\MassifSettings;
+use Ynamite\Massif\Redactor\Output;
 use Ynamite\ViteRex\Assets;
 use Ynamite\ViteRex\Server;
 
@@ -101,9 +101,8 @@ class Generate extends rex_api_function
    */
   private function prepareOutput(string $html): string
   {
-    $html = MassifSettings\Utils::replaceStrings($html);
-    $html = str_replace(['<details>'], ['<details open>'], $html);
-    $html = preg_replace('/<details name="([^"]+)">/', '<details open>', $html);
+    $output = new Output($this->sliceId);
+    $html = $output->parse($html);
     $clang = rex_clang::get($this->clangId);
     $langCode = $clang ? $clang->getCode() : 'en';
     $assets = Assets::get();
@@ -111,14 +110,14 @@ class Generate extends rex_api_function
     $posterJsFileContent = str_replace('VITEREX_PLACEHOLDER_SLICE_ID', $this->sliceId, $posterJsFileContent);
 
     $htmlTemplate = '<!DOCTYPE html>
-<html lang="' . $langCode . '" class="[scrollbar-gutter:_auto]">
+<html lang="' . $langCode . '">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     ' . $assets['preload'] . $assets['criticalCSS'] . $assets['css'] . '
 </head>
 <body class="bg-body min-h-0">
-    <div id="viterex-slice" class="pointer-events-none">
+    <div id="viterex-slice" class="before:top-auto before:fixed before:inset-0 before:bg-gradient-to-t before:from-grey/35 before:to-grey/0 before:h-15 pointer-events-none section-p">
     ' . $html . '
     </div>
     ' . $assets['js'] . '
