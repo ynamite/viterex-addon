@@ -1,6 +1,6 @@
 {
   "name": "viterex-assets",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Asset build for ViteRex Addon",
   "scripts": {
     "version:sync": "node scripts/sync-version.js",
@@ -10,7 +10,7 @@
     "build:js": "vite build --mode js",
     "watch": "vite build --watch",
     "dev": "concurrently \"vite build --watch\" \"npm run clean:assets && npm run sync && npm run watch:build\"",
-    "clean:assets": "rm -f ../../../public/assets/addons/viterex/*",
+    "clean:assets": "rm -rf ../../../public/assets/addons/viterex/*",
     "sync": "rsync -a assets/. ../../../public/assets/addons/viterex/",
     "watch:build": "chokidar 'assets/**/*' -c 'npm run sync'",
     "preview": "vite preview",
