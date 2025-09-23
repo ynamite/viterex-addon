@@ -53,7 +53,8 @@ class Assets
     if ($instance->isDev) {
       return [
         'preload' => $preloadEntries,
-        'criticalCSS' => $criticalCSS,
+        // 'criticalCSS' => $criticalCSS,
+        'criticalCSS' => '',
         'css' => '', // Vite injects CSS in dev mode
         'js' => '<script type="module" src="' . $instance->devServerUrl . '/@vite/client"></script>' .
           '<script type="module" src="' . $instance->devServerUrl . $instance->entryPoint . '"></script>'
