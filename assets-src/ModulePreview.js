@@ -22,7 +22,6 @@
         if (!iframe) {
           return
         }
-        debouncedScrollToSlice()
         iframe.style.height = event.data.height + 'px'
       }
     }
@@ -46,7 +45,66 @@
     }
   }
 
+  function asyncEdit() {
+    if (rex.page !== 'content/edit') {
+      return
+    }
+
+    const editButtons = $('a.btn-edit[href*="slice_id"]')
+    editButtons
+      .off('click.asyncEdit')
+      .on('click.asyncEdit', async function (e) {
+        e.preventDefault()
+        const slice = $(this).closest('.rex-slice')
+        const sliceId = slice.attr('id')
+        if (!sliceId) {
+          return
+        }
+        restore()
+        rex_loader.show()
+        try {
+          const result = await fetch(this.href, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'text/html',
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          })
+          if (!result.ok) throw new Error('Network response was not ok')
+          const html = await result.text()
+          const resultSlice = $(html).find(`#${sliceId}`)
+
+          if (resultSlice.length) {
+            setSliceEdit(sliceId, slice)
+            slice.replaceWith(resultSlice)
+            $(document).trigger('rex:ready', [resultSlice])
+            resultSlice[0].scrollIntoView({ behavior: 'auto' })
+          }
+          rex_loader.hide()
+        } catch (error) {
+          console.error('Error editing slice:', error)
+        }
+      })
+    const setSliceEdit = (id, element) => {
+      rex.isSliceEditing = true
+      rex.sliceEditCurrent = element.clone(true, true)
+      rex.sliceEditCurrentId = id
+    }
+    const restore = () => {
+      if (rex.isSliceEditing && rex.sliceEditCurrent) {
+        const currentSlice = $(`#${rex.sliceEditCurrentId}`)
+        if (currentSlice.length && currentSlice.hasClass('rex-slice-edit')) {
+          currentSlice.replaceWith(rex.sliceEditCurrent)
+        }
+        rex.isSliceEditing = false
+        rex.sliceEditCurrent = null
+      }
+    }
+  }
+
   $(document).on('rex:ready rex:selectMedia rex:YForm_selectData', function () {
     iframePreviews()
+    asyncEdit()
+    debouncedScrollToSlice()
   })
 })(jQuery)
