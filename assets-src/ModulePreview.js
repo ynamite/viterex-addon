@@ -1,7 +1,10 @@
 ;(function ($) {
   'use strict'
   const DEBOUNCE_DELAY = 50
-  const debouncedScrollToSlice = debounce(() => scrollToSlice(), DEBOUNCE_DELAY)
+  const debouncedScrollToSliceFromHash = debounce(
+    () => scrollToSliceFromHash(),
+    DEBOUNCE_DELAY
+  )
 
   let debounceTimer = null
 
@@ -33,7 +36,7 @@
     window.addEventListener('message', resizeIframe)
   }
 
-  function scrollToSlice() {
+  function scrollToSliceFromHash() {
     const pageHash = window.location.hash.substring(1)
     if (pageHash) {
       // Scroll to the hash after a short delay to ensure the iframe has resized
@@ -75,16 +78,20 @@
           const resultSlice = $(html).find(`#${sliceId}`)
 
           if (resultSlice.length) {
+            $('.panel-body .alert').remove()
             setSliceEdit(sliceId, slice)
             slice.replaceWith(resultSlice)
             $(document).trigger('rex:ready', [resultSlice])
-            resultSlice[0].scrollIntoView({ behavior: 'auto' })
+            debouncedScrollToSlice(resultSlice[0])
           }
           rex_loader.hide()
         } catch (error) {
           console.error('Error editing slice:', error)
         }
       })
+    const scrollToSlice = (slice) => {
+      slice.scrollIntoView({ behavior: 'auto' })
+    }
     const setSliceEdit = (id, element) => {
       rex.isSliceEditing = true
       rex.sliceEditCurrent = element.clone(true, true)
@@ -100,11 +107,15 @@
         rex.sliceEditCurrent = null
       }
     }
+    const debouncedScrollToSlice = debounce(
+      (slice) => scrollToSlice(slice),
+      DEBOUNCE_DELAY
+    )
   }
 
   $(document).on('rex:ready rex:selectMedia rex:YForm_selectData', function () {
     iframePreviews()
+    debouncedScrollToSliceFromHash()
     asyncEdit()
-    debouncedScrollToSlice()
   })
 })(jQuery)
