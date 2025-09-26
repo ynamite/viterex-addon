@@ -1,10 +1,20 @@
+@property --color {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: #4bdd4f;
+}
+
 .dev {
-  --color: #4bdd4f;
+  --color: var(--color-dev);
 }
 .prod {
-  --color: #ff269e;
+  --color: var(--color-prod);
 }
 .wrapper {
+  --color-dev: #4bdd4f;
+  --color-prod: #ff269e;
+  --color-alert: #fdd054;
+
   display: flex;
   position: fixed;
   right: 0;
@@ -85,8 +95,9 @@
 .version {
   opacity: 0.45;
 }
-.versionWrapper {
+.infoWrapper {
   display: flex;
+  position: relative;
   align-items: center;
   gap: 0.4rem;
   border-top: 1px solid rgba(0, 0, 0, 0.6);
@@ -98,9 +109,11 @@
     color-mix(in srgb, rgba(255, 255, 255, 0.005), var(--color) 10%),
     color-mix(in srgb, rgba(0, 0, 0, 0.55), var(--color) 4%)
   );
-  padding: 0.4rem 0.6rem;
+  overflow: clip;
   .label {
     display: block;
+    padding: 0.4rem 0.6rem;
+    padding-right: 0;
     color: var(--color);
     font-size: 0.65rem;
     letter-spacing: 0.05em;
@@ -114,4 +127,31 @@
   background-color: var(--color);
   width: 0.5rem;
   height: 0.5rem;
+}
+.branch {
+  display: block;
+  background: linear-gradient(
+    355deg,
+    color-mix(in srgb, var(--color), rgb(255, 236, 193) 25%),
+    color-mix(in srgb, var(--color), rgb(0, 0, 0) 10%)
+  );
+  padding: 0.4rem 0.6rem;
+  padding-left: 0.4rem;
+  color: black;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  text-align: center;
+  text-shadow: 0 -1px 1px
+    color-mix(in srgb, var(--color), rgba(255, 236, 193) 18%);
+  text-transform: uppercase;
+}
+
+.branchAlert * {
+  animation: alertBlink 1.5s infinite;
+}
+
+@keyframes alertBlink {
+  50% {
+    --color: var(--color-alert);
+  }
 }

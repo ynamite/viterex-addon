@@ -7,14 +7,10 @@ namespace Ynamite\ViteRex;
 
 use Dotenv\Dotenv;
 use rex;
-use rex_be_controller;
 use rex_file;
 use rex_path;
 use rex_ydeploy;
 
-use function file_exists;
-use function str_starts_with;
-use function strtolower;
 
 /** @api */
 class Server
@@ -44,7 +40,6 @@ class Server
     $this->isDev = $this->isDevServerRunning();
     // dd($this->devServerUrl);
 
-    $this->checkGitBranch('main');
     $this->checkDebugMode();
   }
 
@@ -195,33 +190,12 @@ class Server
    */
   public static function getGitBranch(): string
   {
+    if (!file_exists(rex_path::base('.git/HEAD'))) {
+      return 'unknown';
+    }
     $contents = rex_file::get(rex_path::base('.git/HEAD')); //read the file
     $explodedstring = explode("/", $contents, 3); //seperate out by the "/" in the string
     return trim($explodedstring[2]); //get the one that is always the branch name
-  }
-
-  /**
-   *  check if dev branch is active if in dev mode or display warning
-   *  @return void
-   */
-  public function checkGitBranch($branch = 'dev'): void
-  {
-    $isMediaPool = false;
-    if (rex::isBackend()) {
-      $pagePart1 = rex_be_controller::getCurrentPagePart(1);
-      $pagePart2 = rex_be_controller::getCurrentPagePart(2);
-      $isMediaPool = $pagePart1 === 'mediapool';
-      $isUploaderEndpoint = $pagePart1 === 'uploader' && $pagePart2 === 'endpoint';
-      if ($isMediaPool || $isUploaderEndpoint) {
-        return;
-      }
-    }
-    if (!file_exists(rex_path::base('.git'))) return;
-    if ($this->isDev) {
-      $currentBranch = self::getGitBranch();
-      if ($currentBranch !== $branch)
-        echo '<div style="z-index: 1000; position: sticky; top: 0; left: 0; right: 0; background: red; color: white; padding: 1rem; font-size: 1.5rem; text-align: center;">You are not on the dev branch! Current branch: ' . $branch . '</div>';
-    }
   }
 
   /**
