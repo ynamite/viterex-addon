@@ -1,6 +1,5 @@
 import './ViteRexBadge.module.css'
 import classes from './ViteRexBadge.module.css'
-console.log('classes', classes)
 const scriptTag = document.getElementById('viterex-badge-script')
 if (!scriptTag) {
   console.warn(
