@@ -27,8 +27,6 @@ if (rex_addon::get('developer')->isAvailable()) {
     rex_developer_manager::setBasePath(rex_path::src());
 }
 
-new Server();
-
 /** @var rex_addon_interface $addon */
 $addon = $this;
 
