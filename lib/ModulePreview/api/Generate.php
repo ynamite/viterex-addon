@@ -14,6 +14,8 @@ use rex_api_exception;
 use rex_api_result;
 use rex_article_content;
 use rex_clang;
+use rex_extension;
+use rex_extension_point;
 use rex_file;
 use rex_response;
 
@@ -108,6 +110,7 @@ class Generate extends rex_api_function
     $assets = Assets::get();
     $posterJsFileContent = rex_file::get($this->addon->getAssetsPath('ModulePreviewPoster.js'));
     $posterJsFileContent = str_replace('VITEREX_PLACEHOLDER_SLICE_ID', $this->sliceId, $posterJsFileContent);
+    $html = rex_extension::registerPoint(new rex_extension_point('MODULE_PREVIEW_OUTPUT', $html));
 
     $htmlTemplate = '<!DOCTYPE html>
 <html lang="' . $langCode . '">
