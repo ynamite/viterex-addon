@@ -53,16 +53,28 @@
       return
     }
 
+    let setHistory = true
+    let existingSliceEdit = $('.rex-slice-edit')
+
     const editButtons = $('a.btn-edit[href*="slice_id"]')
     editButtons
       .off('click.asyncEdit')
       .on('click.asyncEdit', async function (e) {
         e.preventDefault()
+        const $this = $(this)
         const slice = $(this).closest('.rex-slice')
         const sliceId = slice.attr('id')
         if (!sliceId) {
           return
         }
+        if (existingSliceEdit.length) {
+          if (sliceId === existingSliceEdit.attr('id')) {
+            return
+          }
+          await restoreExistingSlice(existingSliceEdit)
+          existingSliceEdit = null
+        }
+
         restore()
         rex_loader.show()
         try {
@@ -83,6 +95,10 @@
             slice.replaceWith(resultSlice)
             $(document).trigger('rex:ready', [resultSlice])
             debouncedScrollToSlice(resultSlice[0])
+            if (setHistory) {
+              history.pushState(null, '', $this.attr('href')) // change url without reloading page
+            }
+            setHistory = true
           }
           rex_loader.hide()
         } catch (error) {
@@ -111,6 +127,51 @@
       (slice) => scrollToSlice(slice),
       DEBOUNCE_DELAY
     )
+    const restoreExistingSlice = async (slice) => {
+      const sliceId = slice.attr('id')
+      const $contentNav = $('#rex-js-structure-content-nav')
+      const editUrl = $contentNav.find('a[href*="edit"]:first').attr('href')
+      if (editUrl) {
+        try {
+          const result = await fetch(editUrl, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'text/html',
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          })
+          if (!result.ok) throw new Error('Network response was not ok')
+          const html = await result.text()
+          const resultSlice = $(html).find(`#${sliceId}`)
+          if (resultSlice.length) {
+            $('.panel-body .alert').remove()
+            setSliceEdit(sliceId, slice)
+            slice.replaceWith(resultSlice)
+          }
+        } catch (error) {
+          console.error('Error restoring slice:', error)
+        }
+      }
+      return
+    }
+    // handle back/forward navigation
+    $(window)
+      .off('popstate.asyncEdit')
+      .on('popstate.asyncEdit', function (e) {
+        // check current url for slice_id and open edit if found
+        const urlParams = new URLSearchParams(window.location.search)
+        const sliceId = urlParams.get('slice_id')
+        if (sliceId) {
+          const $slice = $(`#slice${sliceId}`)
+          if ($slice.length) {
+            setHistory = false
+            $slice.find('a.btn-edit').trigger('click.asyncEdit')
+          }
+        } else {
+          // no slice_id in url, just scroll to top of page
+          window.scrollTo({ top: 0, behavior: 'auto' })
+        }
+      })
   }
 
   $(document).on('rex:ready rex:selectMedia rex:YForm_selectData', function () {
