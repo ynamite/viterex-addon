@@ -58,6 +58,7 @@ if (rex_backend_login::hasSession() && !Server::isProductionDeployment()) {
  */
 if (rex::isBackend() && rex::getUser()) {
     rex_view::addJsFile($this->getAssetsUrl('ModulePreview.js'));
+    rex_view::addCssFile($this->getAssetsUrl('ModulePreview.css'));
 }
 rex_api_function::register('module_preview_generate', ModulePreview\Api\Generate::class);
 rex_extension::register('PACKAGES_INCLUDED', function () {

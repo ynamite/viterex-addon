@@ -14,13 +14,11 @@ class Extension
     $slice = rex_article_slice::getArticleSliceById($sliceData['slice_id']);
     $updateDate = $slice->getValue('updatedate');
     $endpoint = rex_url::backendController(array_merge(['rex-api-call' => 'module_preview_generate', 'updateDate' => $updateDate], $sliceData), false);
-    $html = sprintf(
-      '<div class="border-radius: 4px; min-height: 300px"><iframe data-iframe-preview data-slice-id="%s" scrolling="yes" loading="lazy"
-src="%s" frameborder="0" style="overflow: hidden; overflow-y: scroll; width: %s; height: 300px; visibility: hidden;" onload="this.style.visibility = \'visible\'; this.closest(\'.panel-body\').querySelector(\'.rex-ajax-loader\')?.remove()"></iframe></div>',
-      $sliceData['slice_id'],
-      $endpoint,
-      '100%',
-    );
+    $html =
+      '<div class="module-preview-wrapper">
+      <iframe data-iframe-preview data-slice-id="' . $sliceData['slice_id'] . '" scrolling="yes" loading="lazy"
+src="' . $endpoint . '" frameborder="0" class="module-preview-iframe" onload="this.style.visibility = \'visible\'; this.closest(\'.panel-body\').querySelector(\'.rex-ajax-loader\')?.remove()"></iframe></div>';
+
     $html .= '<div class="rex-visible rex-ajax-loader" style="position: absolute;">
     <div class="rex-ajax-loader-element" style="width: 100px; height: 100px; margin: -50px 0 0 -50px;"></div>
 </div>';

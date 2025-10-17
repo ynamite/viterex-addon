@@ -25,7 +25,7 @@
         if (!iframe) {
           return
         }
-        iframe.style.height = event.data.height + 'px'
+        iframe.parentElement.style.height = event.data.height / 2 + 'px'
       }
     }
 

@@ -26,7 +26,7 @@ function getCurrentHeight() {
       SLICE_WRAPPER.offsetHeight,
       SLICE_WRAPPER.clientHeight
     ),
-    720
+    1000
   )
 }
 
