@@ -21,12 +21,11 @@ function debounce(func, delay) {
 function getCurrentHeight() {
   return Math.min(
     Math.max(
-      300,
       SLICE_WRAPPER.scrollHeight,
       SLICE_WRAPPER.offsetHeight,
       SLICE_WRAPPER.clientHeight
     ),
-    1000
+    10000
   )
 }
 
