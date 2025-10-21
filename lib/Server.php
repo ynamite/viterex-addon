@@ -251,4 +251,17 @@ class Server
     }
     return false;
   }
+  /**
+   * Check if the current environment is a staging deployment
+   * @return bool
+   */
+  public static function isStagingDeployment(): bool
+  {
+    $ydeploy = rex_ydeploy::factory();
+    if ($ydeploy->isDeployed()) {
+      $stage = strtolower($ydeploy->getStage());
+      return str_starts_with($stage, 'stage');
+    }
+    return false;
+  }
 }

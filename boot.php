@@ -44,7 +44,7 @@ rex_extension::register('YREWRITE_SEO_TAGS', function (rex_extension_point $ep) 
 /**
  * Add ViteRex-Badge
  */
-if (rex_backend_login::hasSession() && !Server::isProductionDeployment()) {
+if (rex_backend_login::hasSession() && !Server::isProductionDeployment() && !Server::isStagingDeployment()) {
     rex_extension::register('OUTPUT_FILTER', function (rex_extension_point $ep) use ($addon) {
         $content = $ep->getSubject();
         $badge = Badge::get();
