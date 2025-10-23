@@ -47,13 +47,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         // Main bundle (CSS + backend JS)
-        ViteRexBadge: resolve(__dirname, 'assets-src/ViteRexBadge.js'),
-        ModulePreviewCSS: resolve(__dirname, 'assets-src/ModulePreview.css'),
-        ModulePreview: resolve(__dirname, 'assets-src/ModulePreview.js'),
-        ModulePreviewPoster: resolve(
-          __dirname,
-          'assets-src/ModulePreviewPoster.js'
-        )
+        ViteRexBadge: resolve(__dirname, 'assets-src/ViteRexBadge.js')
       },
       output: {
         // Naming pattern for assets
@@ -61,9 +55,6 @@ export default defineConfig({
           const info = assetInfo.name.split('.')
           const ext = info[info.length - 1]
           if (ext === 'css') {
-            if (assetInfo.name === 'ModulePreviewCSS.css') {
-              return 'ModulePreview.css'
-            }
             return `[name].css`
           }
           return `[name].[ext]`

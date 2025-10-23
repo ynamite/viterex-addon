@@ -12,7 +12,6 @@
 
 namespace Ynamite\ViteRex;
 
-use rex;
 use rex_addon;
 use rex_addon_interface;
 use rex_api_function;
@@ -21,7 +20,6 @@ use rex_developer_manager;
 use rex_extension;
 use rex_extension_point;
 use rex_path;
-use rex_view;
 
 if (rex_addon::get('developer')->isAvailable()) {
     rex_developer_manager::setBasePath(rex_path::src());
@@ -52,19 +50,6 @@ if (rex_backend_login::hasSession() && !Server::isProductionDeployment() && !Ser
         $ep->setSubject($content);
     });
 }
-
-/**
- * Add preview iframe to slice preview view in backend.
- */
-if (rex::isBackend() && rex::getUser()) {
-    rex_view::addJsFile($this->getAssetsUrl('ModulePreview.js'));
-    rex_view::addCssFile($this->getAssetsUrl('ModulePreview.css'));
-}
-rex_api_function::register('module_preview_generate', ModulePreview\Api\Generate::class);
-rex_extension::register('PACKAGES_INCLUDED', function () {
-
-    rex_extension::register('SLICE_BE_PREVIEW', ModulePreview\Extension::register(...), rex_extension::LATE);
-});
 
 /**
  * Register api function to get all active routes for all languages.
