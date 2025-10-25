@@ -146,11 +146,16 @@ class Critical
     if (empty($this->manifest)) {
       return $output;
     }
+    $entryPoint = trim($this->entryPoint, '/');
+    $entry = $this->manifest[$entryPoint] ?? null;
+    $cssFile = $this->buildPath . '/' . $entry['css'][0];
+    $css = rex_file::get($cssFile);
+
     $article_id = rex_article::getCurrentId();
     $clang_id = rex_clang::getCurrentId();
     $manager = Url::resolveCurrent();
     $url = $manager ? $manager->getUrl()->getPath() : rex_getUrl($article_id, $clang_id);
-    $shorthash = substr(hash('sha256', "{$article_id}-{$clang_id}-{$url}"), 0, 8);
+    $shorthash = substr(hash('sha256', "{$article_id}{$clang_id}{$url}{$css}"), 0, 8);
     $criticalPath = $this->buildPath . "/assets/critical-{$shorthash}.css";
     if (file_exists($criticalPath)) {
       $output = "<!-- Critical CSS {$shorthash} for article_id: {$article_id}, clang_id: {$clang_id}, url: {$url} -->\n";
