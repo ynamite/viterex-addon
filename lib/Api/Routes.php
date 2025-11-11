@@ -103,7 +103,6 @@ class Routes extends rex_api_function
   {
 
     rex_response::setStatus($status);
-    rex_response::sendJson($data);
-    return new rex_api_result(true);
+    exit(rex_response::sendJson($data));
   }
 }
