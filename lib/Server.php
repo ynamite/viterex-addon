@@ -210,8 +210,10 @@ class Server
         self::setDebugMode(true);
       }
     } else {
-      if (self::isProductionDeployment() && $isDebugMode) {
-        self::setDebugMode(false);
+      if (self::isProductionDeployment()) {
+        if ($isDebugMode) {
+          self::setDebugMode(false);
+        }
       } else if (!$isDebugMode) {
         self::setDebugMode(true);
       }
