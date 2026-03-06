@@ -32,13 +32,12 @@ class Server
 
     $this->buildUrl = $_ENV['VITE_DIST_DIR'] ?: '/dist';
     $this->buildPath = isset($_ENV['VITE_PUBLIC_DIR']) ? rex_path::base(ltrim($_ENV['VITE_PUBLIC_DIR'], '/') . $this->buildUrl) : rex_path::base('public' . $this->buildUrl);
-    $this->devServerUrl = isset($_ENV['VITE_DEV_SERVER']) ? $_ENV['VITE_DEV_SERVER'] . ':' . $_ENV['VITE_DEV_SERVER_PORT'] : 'http://localhost:3000';
+    $this->devServerUrl = isset($_ENV['VITE_DEV_SERVER']) ? $_ENV['VITE_DEV_SERVER'] . ':' . $_ENV['VITE_DEV_SERVER_PORT'] : 'http://localhost:5173';
     $this->entryPoint = $_ENV['VITE_ENTRY_POINT'] ?: '/index.js';
     $this->manifestPath = $this->buildPath . '/.vite/manifest.json';
     $this->manifest = $this->getManifestArray();
 
     $this->isDev = $this->isDevServerRunning();
-    // dd($this->devServerUrl);
 
     $this->checkDebugMode();
   }
