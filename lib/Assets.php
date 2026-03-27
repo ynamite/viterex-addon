@@ -48,7 +48,7 @@ class Assets
     // preload webfonts
     $preloadEntries = $critical->getPreloadEntries();
 
-    $criticalCSS = $critical->getCSS();
+    $criticalCSS = rex_get('criticalcss', 'bool', false) ? $critical->getCSS() : '';
 
     if ($instance->isDev) {
       return [
