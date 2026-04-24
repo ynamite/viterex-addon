@@ -1,0 +1,18 @@
+{
+	"printWidth": 120,
+	"tabWidth": 2,
+	"useTabs": true,
+	"singleQuote": false,
+	"semi": true,
+	"bracketSameLine": true,
+	"endOfLine": "lf",
+	"plugins": ["prettier-plugin-organize-attributes"],
+	"overrides": [
+		{
+			"files": "*.{html,php}",
+			"options": {
+				"parser": "html"
+			}
+		}
+	]
+}

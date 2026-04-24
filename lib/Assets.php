@@ -1,78 +1,85 @@
 <?php
-/*
- *  Class with utility functions for loading scripts in templates
- */
 
 namespace Ynamite\ViteRex;
 
-class Assets
+final class Assets
 {
-  private static ?self $instance = null;
+    public static function renderBlock(?array $entries = null): string
+    {
+        $entries = self::normalizeEntries($entries);
+        if (empty($entries)) {
+            return '';
+        }
 
-  private string $buildUrl;
-  private string $devServerUrl;
-  private string $entryPoint;
-  private bool $isDev;
-  private array $manifest = [];
+        $server    = Server::factory();
+        $structure = $server->getStructure();
+        $manifest  = $server->getManifestArray();
+        $isDev     = Server::isDevMode();
+        $devUrl    = Server::getDevUrl();
 
-  public function __construct()
-  {
-    $server = Server::factory();
+        $parts = [];
 
-    $this->buildUrl = $server->getValue('buildUrl');
-    $this->devServerUrl = $server->getValue('devServerUrl');
-    $this->entryPoint = $server->getValue('entryPoint');
-    $this->manifest = $server->getValue('manifest');
+        $preload = Preload::renderForEntries($entries);
+        if ($preload !== '') {
+            $parts[] = $preload;
+        }
 
-    $this->isDev = $server->isDevMode();
-  }
+        if (!$isDev) {
+            foreach ($entries as $entry) {
+                if (!isset($manifest[$entry])) {
+                    continue;
+                }
+                foreach ($manifest[$entry]['css'] ?? [] as $cssFile) {
+                    if (!is_string($cssFile) || $cssFile === '') {
+                        continue;
+                    }
+                    $url = $structure->getBuildUrlPath() . '/' . ltrim($cssFile, '/');
+                    $parts[] = '<link rel="stylesheet" href="' . htmlspecialchars($url) . '" media="screen">';
+                }
+            }
+        }
 
-  public static function factory(): self
-  {
-    if (self::$instance) {
-      return self::$instance;
+        if ($isDev && $devUrl !== null) {
+            $parts[] = '<script type="module" src="' . htmlspecialchars($devUrl . '/@vite/client') . '"></script>';
+        }
+
+        foreach ($entries as $entry) {
+            if ($isDev && $devUrl !== null) {
+                $url = $devUrl . '/' . $entry;
+            } else {
+                if (!isset($manifest[$entry]['file']) || !is_string($manifest[$entry]['file'])) {
+                    continue;
+                }
+                $url = $structure->getBuildUrlPath() . '/' . ltrim($manifest[$entry]['file'], '/');
+            }
+            $parts[] = '<script type="module" src="' . htmlspecialchars($url) . '"></script>';
+        }
+
+        return implode("\n", $parts);
     }
 
-    return self::$instance = new self();
-  }
-
-  /**
-   *  outputs tags and paths for assets in dev and production environments
-   *  @return array<string> html
-   */
-  public static function get(): array
-  {
-    $instance = self::factory();
-    $preload = Preload::factory();
-
-    // preload webfonts
-    $preloadEntries = $preload->getPreloadEntries();
-
-    if ($instance->isDev) {
-      return [
-        'preload' => $preloadEntries,
-        'css' => '', // Vite injects CSS in dev mode
-        'js' => '<script type="module" src="' . $instance->devServerUrl . '/@vite/client"></script>' .
-          '<script type="module" src="' . $instance->devServerUrl . $instance->entryPoint . '"></script>'
-      ];
+    public static function getDefaultEntry(): string
+    {
+        $fromEnv = Structure::env('VITE_ENTRY_POINT');
+        if ($fromEnv !== null) {
+            return trim($fromEnv, '/');
+        }
+        return 'src/Main.js';
     }
 
-    // Production: Read manifest.json
-    $entryPoint = trim($instance->entryPoint, '/');
-    $entry = $instance->manifest[$entryPoint] ?? null;
-    if (!$entry) {
-      dump('ViteRex: Entry point "' . $entryPoint . '" not found in manifest.json');
-      return [
-        'preload' => $preloadEntries,
-        'css' => '',
-        'js' => ''
-      ];
+    private static function normalizeEntries(?array $entries): array
+    {
+        $entries = $entries ?? [self::getDefaultEntry()];
+        $normalized = [];
+        foreach ($entries as $entry) {
+            if (!is_string($entry)) {
+                continue;
+            }
+            $trimmed = trim($entry, "/ \t\n\r");
+            if ($trimmed !== '') {
+                $normalized[] = $trimmed;
+            }
+        }
+        return array_values(array_unique($normalized));
     }
-
-    return [
-      'preload' => $preloadEntries,
-      'css' => '<link rel="stylesheet" href="' . $instance->buildUrl . '/' . $entry['css'][0] . '" media="screen">',
-      'js' => '<script type="module" src="' . $instance->buildUrl . '/' . $entry['file'] . '"></script>'
-    ];
-  }
 }

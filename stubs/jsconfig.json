@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"target": "esnext",
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["src/*"]
+		},
+		"checkJs": false,
+		"allowJs": true,
+		"resolveJsonModule": true
+	},
+	"include": ["src/**/*", "vite.config.js", "vite/**/*.js"],
+	"exclude": ["node_modules", "vendor", "redaxo", "public", "theme/public"]
+}

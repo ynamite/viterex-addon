@@ -1,10 +1,10 @@
 package: viterex
 name: ViteRex
-version: '2.1.1'
+version: '3.0.0'
 author: ynamite
-supportpage: https://github.com/ynamite/viterex/tree/main/setup/viterex
+supportpage: https://github.com/ynamite/viterex-addon
 
 requires:
   redaxo: '^5.13.0'
   php:
-    version: '>=7.3'
+    version: '>=8.1'
