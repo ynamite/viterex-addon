@@ -14,7 +14,6 @@ namespace Ynamite\ViteRex;
 
 use rex_addon;
 use rex_addon_interface;
-use rex_api_function;
 use rex_backend_login;
 use rex_developer_manager;
 use rex_extension;
@@ -50,8 +49,3 @@ if (rex_backend_login::hasSession() && !Server::isProductionDeployment() && !Ser
         $ep->setSubject($content);
     });
 }
-
-/**
- * Register api function to get all active routes for all languages.
- */
-rex_api_function::register('get_critical_routes', Critical\Api\Routes::class);

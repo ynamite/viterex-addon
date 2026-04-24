@@ -43,18 +43,14 @@ class Assets
   public static function get(): array
   {
     $instance = self::factory();
-    $critical = Critical::factory();
+    $preload = Preload::factory();
 
     // preload webfonts
-    $preloadEntries = $critical->getPreloadEntries();
-
-    $criticalCSS = rex_get('criticalcss', 'bool', false) ? $critical->getCSS() : '';
+    $preloadEntries = $preload->getPreloadEntries();
 
     if ($instance->isDev) {
       return [
         'preload' => $preloadEntries,
-        // 'criticalCSS' => $criticalCSS,
-        'criticalCSS' => '',
         'css' => '', // Vite injects CSS in dev mode
         'js' => '<script type="module" src="' . $instance->devServerUrl . '/@vite/client"></script>' .
           '<script type="module" src="' . $instance->devServerUrl . $instance->entryPoint . '"></script>'
@@ -68,7 +64,6 @@ class Assets
       dump('ViteRex: Entry point "' . $entryPoint . '" not found in manifest.json');
       return [
         'preload' => $preloadEntries,
-        'criticalCSS' => $criticalCSS,
         'css' => '',
         'js' => ''
       ];
@@ -76,8 +71,7 @@ class Assets
 
     return [
       'preload' => $preloadEntries,
-      'criticalCSS' => $criticalCSS,
-      'css' => '<link rel="stylesheet" href="' . $instance->buildUrl . '/' . $entry['css'][0] . '" media="print" onload="this.media=\'all\'">',
+      'css' => '<link rel="stylesheet" href="' . $instance->buildUrl . '/' . $entry['css'][0] . '" media="screen">',
       'js' => '<script type="module" src="' . $instance->buildUrl . '/' . $entry['file'] . '"></script>'
     ];
   }
