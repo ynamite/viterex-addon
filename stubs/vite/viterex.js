@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, loadEnv, mergeConfig } from "vite";
+import liveReload from "vite-plugin-live-reload";
 import hotFilePlugin from "./hotfile-plugin.js";
 
 const STRUCTURE_JSON_REL = "redaxo/data/addons/viterex/structure.json";
@@ -47,6 +48,46 @@ function fallbackStructure(cwd) {
 	};
 }
 
+function defaultEntryFor(structureName) {
+	switch (structureName) {
+		case "classic":
+			return "assets/js/Main.js";
+		case "theme":
+			return "theme/src/assets/js/Main.js";
+		default:
+			return "src/assets/js/Main.js";
+	}
+}
+
+function liveReloadGlobs(cwd, structureName) {
+	const mediaExt = "{svg,png,jpg,jpeg,webp,avif,gif,woff,woff2}";
+	switch (structureName) {
+		case "modern":
+			return [
+				`${cwd}/src/templates/**/*.php`,
+				`${cwd}/src/modules/**/*.php`,
+				`${cwd}/src/addons/**/fragments/**/*.php`,
+				`${cwd}/src/addons/**/lib/**/*.php`,
+				`${cwd}/src/assets/**/*.${mediaExt}`,
+				`${cwd}/var/cache/addons/{structure,url}/**`,
+			];
+		case "theme":
+			return [
+				`${cwd}/theme/private/templates/**/*.php`,
+				`${cwd}/theme/private/modules/**/*.php`,
+				`${cwd}/theme/private/fragments/**/*.php`,
+				`${cwd}/theme/src/assets/**/*.${mediaExt}`,
+				`${cwd}/redaxo/var/cache/addons/{structure,url}/**`,
+			];
+		default:
+			return [
+				`${cwd}/assets/**/*.${mediaExt}`,
+				`${cwd}/redaxo/data/addons/structure/**`,
+				`${cwd}/redaxo/var/cache/addons/{structure,url}/**`,
+			];
+	}
+}
+
 function resolveHttps(cwd, env) {
 	if (env.VITE_HTTPS !== "true") {
 		return null;
@@ -65,13 +106,18 @@ export function defineViterexConfig(userConfig = {}) {
 		const cwd = process.cwd();
 		const env = loadEnv(mode, cwd, "");
 		const structure = loadStructure(cwd);
-		const entry = env.VITE_ENTRY_POINT ? env.VITE_ENTRY_POINT.replace(/^\//, "") : "src/Main.js";
+		const entry = env.VITE_ENTRY_POINT
+			? env.VITE_ENTRY_POINT.replace(/^\//, "")
+			: defaultEntryFor(structure.structure);
 		const https = resolveHttps(cwd, env);
 
 		const baseConfig = {
-			plugins: [hotFilePlugin({ hotFilePath: structure.hotFilePath })],
+			plugins: [
+				hotFilePlugin({ hotFilePath: structure.hotFilePath }),
+				liveReload(liveReloadGlobs(cwd, structure.structure), { alwaysReload: true }),
+			],
 			resolve: {
-				alias: [{ find: "@", replacement: path.resolve(cwd, "src") }],
+				alias: [{ find: "@", replacement: path.resolve(cwd, path.dirname(entry)) }],
 			},
 			css: {
 				transformer: "lightningcss",

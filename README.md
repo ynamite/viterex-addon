@@ -8,23 +8,34 @@ ViteRex ist ein eigenständiges Redaxo-Addon, das Vite-basierte Frontend-Entwick
 
 ## Installation
 
-```bash
-composer require ynamite/viterex
-```
+ViteRex wird wie jedes Redaxo-Addon installiert — **nicht über Composer**. Zwei Wege:
 
-Anschliessend das Addon in Redaxo aktivieren (Backend → AddOns → ViteRex). Beim Installieren werden die Scaffolding-Dateien in das Projekt-Root kopiert:
+**Über den Redaxo Installer (empfohlen):** Im Backend unter *AddOns → Installer* nach `viterex` suchen, herunterladen und aktivieren.
+
+**Manuell aus GitHub:** Den Inhalt dieses Repos nach `redaxo/src/addons/viterex/` (modern/ydeploy) bzw. `addons/viterex/` (classic) entpacken oder klonen, dann im Backend unter *AddOns* installieren und aktivieren.
+
+Beim Aktivieren werden die folgenden Scaffolding-Dateien in das Projekt-Root kopiert:
 
 | Datei | Zweck |
 |---|---|
-| `package.json` | Node-Abhängigkeiten (Vite + Dev-Tooling). Keine Framework-Pakete. |
+| `package.json` | Node-Abhängigkeiten (Vite + Dev-Tooling + `vite-plugin-live-reload`). Keine Framework-Pakete. |
 | `vite.config.js` | Thin-Wrapper, der `defineViterexConfig` aus `vite/viterex.js` aufruft. |
-| `vite/viterex.js` | Struktur-bewusste Vite-Konfiguration (outDir, Manifest, Hot-File-Plugin, optional HTTPS). |
+| `vite/viterex.js` | Struktur-bewusste Vite-Konfiguration (outDir, Manifest, Hot-File-Plugin, Live-Reload-Globs, optional HTTPS). |
 | `vite/hotfile-plugin.js` | Schreibt `<public>/.hot` mit der Dev-Server-URL. |
 | `.env.example` | Dokumentierte `VITE_*`-Variablen. |
 | `.browserslistrc`, `.prettierrc`, `biome.json`, `stylelint.config.js`, `jsconfig.json` | Dev-Tooling-Defaults. |
-| `src/Main.js`, `src/style.css` | Minimaler Beispiel-Entry, damit `npm run dev` sofort funktioniert. |
 
-Existiert eine Datei bereits im Projekt-Root, wird sie **nicht** überschrieben. Stattdessen wird eine Kopie als `<datei>.viterex-default` angelegt; du kannst die Default-Variante manuell mit deiner Version vergleichen.
+Zusätzlich werden — **abhängig von der erkannten Struktur** — der Default-Entry-Point und ein passendes Stylesheet gescaffoldet:
+
+| Struktur | Source-Pfade |
+|---|---|
+| `modern` (ydeploy, **empfohlen**) | `src/assets/js/Main.js`, `src/assets/css/style.css` |
+| `classic` | `assets/js/Main.js`, `assets/css/style.css` |
+| `theme` | `theme/src/assets/js/Main.js`, `theme/src/assets/css/style.css` |
+
+Wird eine andere Struktur als `modern` erkannt, gibt das Addon nach der Installation einen Hinweis aus, der zur Migration ermutigt — alle drei Strukturen funktionieren, aber `modern` profitiert am stärksten von ydeploy, Live-Reload-Pfaden und dem Tooling.
+
+Existiert eine Datei bereits am Zielort, wird sie **nicht** überschrieben. Stattdessen wird eine Kopie als `<datei>.viterex-default` angelegt; du kannst die Default-Variante manuell mit deiner Version vergleichen.
 
 `.gitignore` wird zeilenweise gescannt — fehlende ViteRex-Einträge (`node_modules/`, `*.hot`, `<buildpath>/.vite/`) werden unter einer `# Added by viterex`-Markierung ergänzt. Bestehende Einträge bleiben unverändert.
 
@@ -51,9 +62,9 @@ Formen:
 
 | Form | Verhalten |
 |---|---|
-| `REX_VITE` | Default-Entry (`VITE_ENTRY_POINT` in `.env`, Fallback `src/Main.js`). |
-| `REX_VITE[src="src/Main.js"]` | Einzelner, expliziter Entry. |
-| `REX_VITE[src="src/Main.js\|src/style.css"]` | Mehrere Entries, pipe-separiert (Statamic-Konvention). |
+| `REX_VITE` | Default-Entry. `VITE_ENTRY_POINT` in `.env` falls gesetzt; sonst struktur-abhängig: `src/assets/js/Main.js` (modern), `assets/js/Main.js` (classic), `theme/src/assets/js/Main.js` (theme). |
+| `REX_VITE[src="src/assets/js/Main.js"]` | Einzelner, expliziter Entry. |
+| `REX_VITE[src="src/assets/js/Main.js\|src/assets/js/Admin.js"]` | Mehrere Entries, pipe-separiert (Statamic-Konvention). |
 
 Pro Vorkommen gibt der Filter in dieser Reihenfolge aus:
 
@@ -74,7 +85,7 @@ Der Filter ist **frontend-only** (`rex::isBackend()` verlässt früh).
 VITE_DEV_SERVER=http://localhost       # HTTP-Fallback, wenn das Hot-File fehlt
 VITE_DEV_SERVER_PORT=5173
 
-VITE_ENTRY_POINT=src/Main.js           # Default-Entry
+# VITE_ENTRY_POINT=src/assets/js/Main.js   # Auto-resolved per Struktur, wenn unset
 
 VITE_HTTPS=false                       # HTTPS-Dev-Server aktivieren
 # mkcert localhost 127.0.0.1 ::1       # dann diese Zertifikate erzeugen
@@ -131,6 +142,20 @@ Andere Addons können via `VITEREX_BADGE` weitere Panels einhängen (siehe Erwei
 
 ---
 
+## Contributing
+
+Das Backend-Badge wird mit Vite gebaut. Wenn du Files unter `viterex-addon/assets-src/` änderst (z. B. `ViteRexBadge.js` oder `.module.css`), musst du die kompilierten Versionen unter `viterex-addon/assets/` neu erzeugen:
+
+```bash
+cd viterex-addon
+npm install   # einmalig
+npm run build
+```
+
+Die generierten Dateien (`assets/ViteRexBadge.js`, `.css`, `.js.map`) werden mitcommittet — sie sind Teil des Releases, das via `publish-to-redaxo.yml` zum Redaxo Installer gepusht wird.
+
+---
+
 ## Migration from 2.x
 
 - `Assets::get()` wurde entfernt. Templates, die bisher `<?= $assets['js'] ?>` / `$assets['css']` / `$assets['preload']` nutzten, auf `REX_VITE[src="..."]` umstellen — oder den Platzhalter komplett entfernen und den Auto-Insert-Fallback nutzen.
@@ -146,9 +171,9 @@ Diese Checkliste prüft end-to-end, ob das Addon in allen drei Strukturen korrek
 
 1. **Fresh install (modern):** `composer require ynamite/viterex`, aktivieren. Backend zeigt `rex_view::success` mit den gescaffoldeten Dateien. `redaxo/data/addons/viterex/structure.json` enthält `"structure":"modern"`. `npm install && npm run dev` startet Vite, `public/.hot` erscheint.
 2. **Reinstall:** Deaktivieren + reinstallieren → bestehende Dateien unverändert, `*.viterex-default`-Siblings neu. `.gitignore` meldet "already complete".
-3. **Dev-Mode (default entry):** Ein `REX_VITE` im Template platzieren (oder ganz weglassen für Auto-Insert). Frontend laden → `<script ... @vite/client>` und `<script ... src/Main.js>` sichtbar; keine `<link rel="stylesheet">` (Vite injiziert CSS im Dev per JS).
-4. **Prod-Mode (explizit):** `npm run build` ausführen, Vite beenden (`.hot` verschwindet). `REX_VITE[src="src/Main.js"]` → liefert modulepreload (inkl. Deep Imports), `<link rel="stylesheet">`, `<script type="module">` mit Hashfile.
-5. **Multi-Entry:** `REX_VITE[src="src/Main.js|src/Admin.js"]` → beide Entries rendern Preload + CSS + JS.
+3. **Dev-Mode (default entry):** Ein `REX_VITE` im Template platzieren (oder ganz weglassen für Auto-Insert). Frontend laden → `<script ... @vite/client>` und `<script ... src/assets/js/Main.js>` sichtbar; keine `<link rel="stylesheet">` (Vite injiziert CSS im Dev per JS).
+4. **Prod-Mode (explizit):** `npm run build` ausführen, Vite beenden (`.hot` verschwindet). `REX_VITE[src="src/assets/js/Main.js"]` → liefert modulepreload (inkl. Deep Imports), `<link rel="stylesheet">`, `<script type="module">` mit Hashfile.
+5. **Multi-Entry:** `REX_VITE[src="src/assets/js/Main.js|src/assets/js/Admin.js"]` → beide Entries rendern Preload + CSS + JS.
 6. **Classic:** Auf Install ohne `public/index.php` und ohne `theme`-Addon → `structure.json` meldet `"classic"`; Assets unter `<base>/assets/addons/viterex/`.
 7. **Classic + Theme:** `theme`-Addon aktivieren → `structure.json` meldet `"theme"`; Assets unter `<base>/theme/public/assets/addons/viterex/`; Hot-File unter `<base>/theme/public/.hot`.
 8. **`.env`-Overrides:** `VITE_STRUCTURE=modern` in einer classic-Installation → erzwingt modern (Cache wird invalidiert, sobald `.env` neuer ist als `structure.json`).

@@ -64,7 +64,11 @@ final class Assets
         if ($fromEnv !== null) {
             return trim($fromEnv, '/');
         }
-        return 'src/Main.js';
+        return match (Structure::detect()->getName()) {
+            'classic' => 'assets/js/Main.js',
+            'theme'   => 'theme/src/assets/js/Main.js',
+            default   => 'src/assets/js/Main.js',
+        };
     }
 
     private static function normalizeEntries(?array $entries): array

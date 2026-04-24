@@ -2,7 +2,10 @@
 
 use Ynamite\ViteRex\Structure;
 
-$stubs = [
+$structure = Structure::detect(true);
+$structureName = $structure->getName();
+
+$rootStubs = [
     'package.json'            => '/package.json',
     'vite.config.js'          => '/vite.config.js',
     'vite/viterex.js'         => '/vite/viterex.js',
@@ -13,10 +16,24 @@ $stubs = [
     'biome.json'              => '/biome.json',
     'stylelint.config.js'     => '/stylelint.config.js',
     'jsconfig.json'           => '/jsconfig.json',
-    'src/Main.js'             => '/src/Main.js',
-    'src/style.css'           => '/src/style.css',
 ];
 
+$sourceStubs = match ($structureName) {
+    'classic' => [
+        'src/assets/js/Main.js'      => '/assets/js/Main.js',
+        'src/assets/css/style.css'   => '/assets/css/style.css',
+    ],
+    'theme' => [
+        'src/assets/js/Main.js'      => '/theme/src/assets/js/Main.js',
+        'src/assets/css/style.css'   => '/theme/src/assets/css/style.css',
+    ],
+    default => [
+        'src/assets/js/Main.js'      => '/src/assets/js/Main.js',
+        'src/assets/css/style.css'   => '/src/assets/css/style.css',
+    ],
+};
+
+$stubs    = $rootStubs + $sourceStubs;
 $stubsDir = __DIR__ . '/stubs';
 
 $written = [];
@@ -41,8 +58,6 @@ foreach ($stubs as $stub => $rel) {
     $written[] = $rel;
 }
 
-$structure = Structure::detect(true);
-
 $gitignorePath = rex_path::base('.gitignore');
 $requiredLines = [
     'node_modules/',
@@ -50,7 +65,6 @@ $requiredLines = [
     ltrim($structure->getBuildUrlPath(), '/') . '/.vite/',
 ];
 
-$gitignoreAction = 'unchanged';
 if (!file_exists($gitignorePath)) {
     rex_file::put($gitignorePath, "# Added by viterex\n" . implode("\n", $requiredLines) . "\n");
     $gitignoreAction = 'created';
@@ -74,7 +88,7 @@ echo rex_view::success(sprintf(
     count($written),
     count($skipped),
     $gitignoreAction,
-    $structure->getName(),
+    $structureName,
 ));
 
 if (!empty($skipped)) {
@@ -83,4 +97,12 @@ if (!empty($skipped)) {
         $skipped,
     );
     echo rex_view::info('Existing files were preserved. Review the defaults:<ul>' . implode('', $items) . '</ul>');
+}
+
+if ($structureName !== 'modern') {
+    echo rex_view::warning(sprintf(
+        'Detected <code>%s</code> directory structure. ViteRex works fine here, but the recommended layout is <strong>modern</strong> (ydeploy) — sources under <code>src/assets/{js,css}/</code>, build output under <code>public/assets/addons/viterex/</code>. Consider migrating for better tooling integration. Sources for this install were scaffolded under <code>%s</code>.',
+        rex_escape($structureName),
+        rex_escape($structureName === 'theme' ? 'theme/src/assets/{js,css}/' : 'assets/{js,css}/'),
+    ));
 }
