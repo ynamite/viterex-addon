@@ -10,28 +10,28 @@ ViteRex ist ein eigenständiges Redaxo-Addon, das Vite-basierte Frontend-Entwick
 
 ViteRex wird wie jedes Redaxo-Addon installiert — **nicht über Composer**. Zwei Wege:
 
-**Über den Redaxo Installer (empfohlen):** Im Backend unter *AddOns → Installer* nach `viterex` suchen, herunterladen und aktivieren.
+**Über den Redaxo Installer (empfohlen):** Im Backend unter _AddOns → Installer_ nach `viterex` suchen, herunterladen und aktivieren.
 
-**Manuell aus GitHub:** Den Inhalt dieses Repos nach `redaxo/src/addons/viterex/` (modern/ydeploy) bzw. `addons/viterex/` (classic) entpacken oder klonen, dann im Backend unter *AddOns* installieren und aktivieren.
+**Manuell aus GitHub:** Den Inhalt dieses Repos nach `redaxo/src/addons/viterex/` (modern/ydeploy) bzw. `addons/viterex/` (classic) entpacken oder klonen, dann im Backend unter _AddOns_ installieren und aktivieren.
 
 Beim Aktivieren werden die folgenden Scaffolding-Dateien in das Projekt-Root kopiert:
 
-| Datei | Zweck |
-|---|---|
-| `package.json` | Node-Abhängigkeiten (Vite + Dev-Tooling + `vite-plugin-live-reload`). Keine Framework-Pakete. |
-| `vite.config.js` | Thin-Wrapper, der `defineViterexConfig` aus `vite/viterex.js` aufruft. |
-| `vite/viterex.js` | Struktur-bewusste Vite-Konfiguration (outDir, Manifest, Hot-File-Plugin, Live-Reload-Globs, optional HTTPS). |
-| `vite/hotfile-plugin.js` | Schreibt `<public>/.hot` mit der Dev-Server-URL. |
-| `.env.example` | Dokumentierte `VITE_*`-Variablen. |
-| `.browserslistrc`, `.prettierrc`, `biome.json`, `stylelint.config.js`, `jsconfig.json` | Dev-Tooling-Defaults. |
+| Datei                                                                                   | Zweck                                                                                                                                                                                                                                                     |
+| --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `package.json`                                                                          | Node-Abhängigkeiten (Vite + Dev-Tooling + `vite-plugin-live-reload` + `rollup-plugin-copy`). Keine Framework-Pakete.                                                                                                                                      |
+| `vite.config.js`                                                                        | Struktur-agnostischer Bootstrap: probt `<frontend>/assets/addons/viterex/vite/viterex.js` an drei Kandidaten-Pfaden und importiert `defineViterexConfig` per dynamischem `await import`. Damit überlebt die Datei einen Strukturwechsel ohne Re-Scaffold. |
+| `.env.example`                                                                          | Dokumentierte `VITE_*`-Variablen inkl. `VITE_COPY_DIRS`.                                                                                                                                                                                                  |
+| `.browserslistrc`, `.prettierrc`, `biome.jsonc`, `stylelint.config.js`, `jsconfig.json` | Dev-Tooling-Defaults.                                                                                                                                                                                                                                     |
+
+Die eigentliche Vite-Logik (`viterex.js` + `hotfile-plugin.js`) wird **nicht** als Stub kopiert. Sie liegt im Addon unter `viterex-addon/assets/vite/` und wird von Redaxo automatisch nach `<frontend>/assets/addons/viterex/vite/` kopiert (siehe `packages/manager.php` Core). Ein Update des Addons aktualisiert damit gleichzeitig die Vite-Konfiguration — kein manueller Diff nötig.
 
 Zusätzlich werden — **abhängig von der erkannten Struktur** — der Default-Entry-Point und ein passendes Stylesheet gescaffoldet:
 
-| Struktur | Source-Pfade |
-|---|---|
-| `modern` (ydeploy, **empfohlen**) | `src/assets/js/Main.js`, `src/assets/css/style.css` |
-| `classic` | `assets/js/Main.js`, `assets/css/style.css` |
-| `theme` | `theme/src/assets/js/Main.js`, `theme/src/assets/css/style.css` |
+| Struktur                          | Source-Pfade                                                    |
+| --------------------------------- | --------------------------------------------------------------- |
+| `modern` (ydeploy, **empfohlen**) | `src/assets/js/Main.js`, `src/assets/css/style.css`             |
+| `classic`                         | `assets/js/Main.js`, `assets/css/style.css`                     |
+| `theme`                           | `theme/src/assets/js/Main.js`, `theme/src/assets/css/style.css` |
 
 Wird eine andere Struktur als `modern` erkannt, gibt das Addon nach der Installation einen Hinweis aus, der zur Migration ermutigt — alle drei Strukturen funktionieren, aber `modern` profitiert am stärksten von ydeploy, Live-Reload-Pfaden und dem Tooling.
 
@@ -60,18 +60,18 @@ In beliebigen Redaxo-Templates einsetzen:
 
 Formen:
 
-| Form | Verhalten |
-|---|---|
-| `REX_VITE` | Default-Entry. `VITE_ENTRY_POINT` in `.env` falls gesetzt; sonst struktur-abhängig: `src/assets/js/Main.js` (modern), `assets/js/Main.js` (classic), `theme/src/assets/js/Main.js` (theme). |
-| `REX_VITE[src="src/assets/js/Main.js"]` | Einzelner, expliziter Entry. |
-| `REX_VITE[src="src/assets/js/Main.js\|src/assets/js/Admin.js"]` | Mehrere Entries, pipe-separiert (Statamic-Konvention). |
+| Form                                                              | Verhalten                                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `REX_VITE`                                                        | Default-Entries: **ein JS- und ein CSS-Entry** (saubere Trennung). Auto-resolved per Struktur, wenn `VITE_ENTRY_POINT` / `VITE_CSS_ENTRY_POINT` in `.env` nicht gesetzt sind. Modern: `src/assets/js/Main.js` + `src/assets/css/style.css`. Classic: `assets/js/Main.js` + `assets/css/style.css`. Theme: `theme/src/assets/js/Main.js` + `theme/src/assets/css/style.css`. |
+| `REX_VITE[src="src/assets/js/Main.js"]`                           | Nur dieser eine Entry (überschreibt Defaults).                                                                                                                                                                                                                                                                                                                              |
+| `REX_VITE[src="src/assets/js/Main.js\|src/assets/css/style.css"]` | Mehrere Entries, pipe-separiert (Statamic-Konvention).                                                                                                                                                                                                                                                                                                                      |
 
 Pro Vorkommen gibt der Filter in dieser Reihenfolge aus:
 
-1. `<link rel="modulepreload">` und `<link rel="preload">` für Imports, CSS, Fonts und Assets (vollständige Walk durch die Manifest-Graph, Zyklen werden erkannt).
-2. `<link rel="stylesheet">` für jede CSS-Chunk (nur Produktion — im Dev wird CSS von Vite per JS injiziert).
-3. `<script type="module" src="<devUrl>/@vite/client">` (nur Dev, pro Vorkommen; Browser dedupliziert anhand der URL).
-4. `<script type="module" src="...">` pro Entry.
+1. `<link rel="modulepreload">` und `<link rel="preload">` für Imports, CSS, Fonts und Assets von **JS-Entries** (vollständige Walk durch die Manifest-Graph, Zyklen werden erkannt). CSS-Entries brauchen keinen Preload — der `<link rel="stylesheet">` selbst löst den Fetch aus.
+2. `<link rel="stylesheet">` für jeden CSS-Entry und alle co-lokalisierten CSS-Chunks von JS-Entries. **Auch im Dev** — der separate CSS-Entry wird vom Vite-Dev-Server direkt ausgeliefert.
+3. `<script type="module" src="<devUrl>/@vite/client">` (nur Dev, einmal pro Vorkommen mit JS-Entries).
+4. `<script type="module" src="...">` pro JS-Entry.
 
 **Auto-Insert-Fallback**: Wird in der gerenderten Seite **kein** `REX_VITE` gefunden, fügt der Filter denselben Block unmittelbar vor dem ersten `</head>` ein — mit dem Default-Entry. Damit lässt sich ViteRex ohne Template-Änderung aktivieren.
 
@@ -85,14 +85,23 @@ Der Filter ist **frontend-only** (`rex::isBackend()` verlässt früh).
 VITE_DEV_SERVER=http://localhost       # HTTP-Fallback, wenn das Hot-File fehlt
 VITE_DEV_SERVER_PORT=5173
 
-# VITE_ENTRY_POINT=src/assets/js/Main.js   # Auto-resolved per Struktur, wenn unset
+VITE_HOST_PROTOCOL=http                # Redaxo-Host (für CORS-Origin im Dev-Server)
+VITE_HOST_NAME=localhost               # → cors: { origin: "http://localhost" }; leer = cors: true
+
+# Beide Entries: auto-resolved per Struktur, wenn unset.
+# VITE_ENTRY_POINT=src/assets/js/Main.js
+# VITE_CSS_ENTRY_POINT=src/assets/css/style.css
+
+# Ordner unter <assetsSourceDir>, die per rollup-plugin-copy in den Build kopiert werden.
+# VITE_COPY_DIRS=img,fonts,static      # Default: img
 
 VITE_HTTPS=false                       # HTTPS-Dev-Server aktivieren
 # mkcert localhost 127.0.0.1 ::1       # dann diese Zertifikate erzeugen
 
 # VITE_STRUCTURE=modern                # classic | modern | theme (auto)
-# VITE_OUTPUT_DIR=/public/assets/addons/viterex
-# VITE_DIST_URL=/assets/addons/viterex
+# VITE_OUTPUT_DIR=/public/dist
+# VITE_DIST_URL=/dist
+# VITE_ASSETS_SOURCE_DIR=src/assets
 ```
 
 ---
@@ -102,7 +111,7 @@ VITE_HTTPS=false                       # HTTPS-Dev-Server aktivieren
 Beim ersten `Structure::detect()` wird die Verzeichnisstruktur ermittelt und in `redaxo/data/addons/viterex/structure.json` gecached. Priorität (höchste zuerst):
 
 1. `VITE_STRUCTURE` in `.env` → `classic` | `modern` | `theme`
-2. `theme`-Addon aktiv → `theme` (Assets nach `theme/public/assets/addons/viterex`)
+2. `theme`-Addon aktiv → `theme` (Build-Output nach `theme/public/dist`)
 3. `public/index.php` existiert → `modern` (ydeploy-Konvention)
 4. sonst → `classic`
 
@@ -120,10 +129,92 @@ Fallback: Ist `VITE_DEV_SERVER` in `.env` gesetzt, wird ein HTTP-Probe gegen `<d
 
 ## Erweiterungspunkte
 
-| Name | Subject | Verwendung |
-|---|---|---|
-| `VITEREX_BADGE` | `array` von HTML-Strings | Zusätzliche Panels im ViteRex-Badge rendern (z. B. Tailwind-Breakpoint-Indikator). |
+| Name              | Subject                      | Verwendung                                                                                     |
+| ----------------- | ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| `VITEREX_BADGE`   | `array` von HTML-Strings     | Zusätzliche Panels im ViteRex-Badge rendern (z. B. Tailwind-Breakpoint-Indikator).             |
 | `VITEREX_PRELOAD` | `array` von `<link>`-Strings | Zusätzliche Preload-Links einfügen (z. B. Webfonts im Dev-Modus). Parameter: `entries`, `dev`. |
+
+---
+
+## Vite-Konfiguration erweitern (für Addon-Entwickler)
+
+Das gescaffoldete `vite/viterex.js` exportiert eine einzige Factory-Funktion:
+
+```js
+import { defineViterexConfig } from './vite/viterex.js'
+export default defineViterexConfig({
+  // userOverrides — wird via Vite's mergeConfig deep-gemerged.
+  // Arrays (plugins, build.rollupOptions.input, …) werden konkateniert,
+  // Objekte (build, server, css, …) deep-gemerged.
+})
+```
+
+**Konvention für nachgelagerte Addons** (z. B. `redaxo-massif`): nicht `viterex.js` direkt editieren — stattdessen ein eigenes Helper-File daneben legen, das `defineViterexConfig` umschliesst. Ein Re-Install von viterex überschreibt `viterex.js` nicht (defaults landen als `viterex.js.viterex-default`-Sibling), aber das saubere Wrapping macht klar, wer was beisteuert.
+
+```js
+// vite/massif.js — gescaffoldet vom redaxo-massif install.php
+import tailwind from '@tailwindcss/vite'
+import alpinePlugin from 'vite-plugin-alpine'
+import { defineViterexConfig } from './viterex.js'
+
+export function defineMassifConfig(userOverrides = {}) {
+  return defineViterexConfig({
+    plugins: [tailwind(), alpinePlugin()],
+    resolve: {
+      alias: [{ find: '~massif', replacement: '/path/to/massif/assets' }]
+    },
+    ...userOverrides
+  })
+}
+```
+
+Der User passt nur seine `vite.config.js` an (eine Zeile):
+
+```js
+// Vorher:
+// import { defineViterexConfig } from "./vite/viterex.js";
+// export default defineViterexConfig({});
+
+// Nachher:
+import { defineMassifConfig } from './vite/massif.js'
+export default defineMassifConfig({})
+```
+
+Mehrere Addons können sich kettenförmig wrappen — jedes Helper-File importiert das nächste in der Kette und erweitert dessen Config. Da Vite's `mergeConfig` array-Felder konkateniert, addieren sich Plugins und Entries; sie überschreiben sich nicht.
+
+---
+
+## PHP-Helpers für statische Assets
+
+Für statische Assets, die aus PHP-Templates referenziert werden (Background-Images, Logos, inline SVGs, JSON-Fragments), gibt es drei Helfer auf der `Assets`-Klasse. Sie respektieren automatisch dev/prod-Modus und die erkannte Struktur.
+
+```php
+use Ynamite\ViteRex\Assets;
+
+// URL für ein bereits existierendes Asset (Browser):
+//   dev  → https://localhost:5173/src/assets/img/logo-640w.webp
+//   prod → /dist/assets/img/logo-640w.webp
+<img src="<?= Assets::url('img/logo-640w.webp') ?>">
+
+// CSS background-image:
+<div style="background-image:url(<?= Assets::url('img/hero.jpg') ?>)">…</div>
+
+// Absoluter Filesystem-Pfad (für rex_file::get oder andere PHP-Reads):
+//   dev  → <base>/src/assets/img/logo.svg
+//   prod → <base>/public/dist/assets/img/logo.svg
+$svgPath = Assets::path('img/logo.svg');
+
+// Inline-SVG/JSON/Text (liest die Datei direkt):
+<?= Assets::inline('img/icon-arrow.svg') ?>
+```
+
+**Wichtig:** Damit Assets in der **Produktion** unter den von `Assets::url()` und `Assets::path()` zurückgegebenen Pfaden existieren, müssen sie beim Build ins `<outDir>/assets/<dir>/` kopiert werden. Das übernimmt `rollup-plugin-copy`, gesteuert über die Env-Variable `VITE_COPY_DIRS` (Default: `img`). Für Fonts oder weitere statische Verzeichnisse:
+
+```env
+VITE_COPY_DIRS=img,fonts,static
+```
+
+Assets, die per JS oder CSS importiert werden (`import "../img/foo.png?url"` oder `background: url("../img/foo.png")`), behandelt Vite ohnehin automatisch über das Manifest — dafür sind `Assets::url()` und `VITE_COPY_DIRS` nicht nötig.
 
 ---
 
@@ -152,7 +243,7 @@ npm install   # einmalig
 npm run build
 ```
 
-Die generierten Dateien (`assets/ViteRexBadge.js`, `.css`, `.js.map`) werden mitcommittet — sie sind Teil des Releases, das via `publish-to-redaxo.yml` zum Redaxo Installer gepusht wird.
+Die generierten Dateien landen unter `assets/badge/ViteRexBadge.{js,css,js.map}` (dedizierter Subfolder, damit `emptyOutDir: true` die committeten Helper-Dateien unter `assets/vite/` nicht mitlöscht). Beide Verzeichnisse werden mitcommittet — sie sind Teil des Releases, das via `publish-to-redaxo.yml` zum Redaxo Installer gepusht wird.
 
 ---
 
@@ -171,11 +262,11 @@ Diese Checkliste prüft end-to-end, ob das Addon in allen drei Strukturen korrek
 
 1. **Fresh install (modern):** `composer require ynamite/viterex`, aktivieren. Backend zeigt `rex_view::success` mit den gescaffoldeten Dateien. `redaxo/data/addons/viterex/structure.json` enthält `"structure":"modern"`. `npm install && npm run dev` startet Vite, `public/.hot` erscheint.
 2. **Reinstall:** Deaktivieren + reinstallieren → bestehende Dateien unverändert, `*.viterex-default`-Siblings neu. `.gitignore` meldet "already complete".
-3. **Dev-Mode (default entry):** Ein `REX_VITE` im Template platzieren (oder ganz weglassen für Auto-Insert). Frontend laden → `<script ... @vite/client>` und `<script ... src/assets/js/Main.js>` sichtbar; keine `<link rel="stylesheet">` (Vite injiziert CSS im Dev per JS).
-4. **Prod-Mode (explizit):** `npm run build` ausführen, Vite beenden (`.hot` verschwindet). `REX_VITE[src="src/assets/js/Main.js"]` → liefert modulepreload (inkl. Deep Imports), `<link rel="stylesheet">`, `<script type="module">` mit Hashfile.
+3. **Dev-Mode (default entries):** Ein `REX_VITE` im Template platzieren (oder ganz weglassen für Auto-Insert). Frontend laden → drei Tags sichtbar: `<link rel="stylesheet" href="…/src/assets/css/style.css">`, `<script ... @vite/client>`, `<script ... src/assets/js/Main.js>`. CSS lädt direkt vom Dev-Server (separater Entry — kein JS-Inject).
+4. **Prod-Mode (explizit):** `npm run build` ausführen, Vite beenden (`.hot` verschwindet). Built-Output unter `<frontend>/dist/assets/Main-<hash>.{js,css}`, Manifest unter `<frontend>/dist/.vite/manifest.json`. `REX_VITE[src="src/assets/js/Main.js"]` → liefert modulepreload (inkl. Deep Imports), `<link rel="stylesheet" href="/dist/assets/style-<hash>.css">`, `<script type="module" src="/dist/assets/Main-<hash>.js">`.
 5. **Multi-Entry:** `REX_VITE[src="src/assets/js/Main.js|src/assets/js/Admin.js"]` → beide Entries rendern Preload + CSS + JS.
-6. **Classic:** Auf Install ohne `public/index.php` und ohne `theme`-Addon → `structure.json` meldet `"classic"`; Assets unter `<base>/assets/addons/viterex/`.
-7. **Classic + Theme:** `theme`-Addon aktivieren → `structure.json` meldet `"theme"`; Assets unter `<base>/theme/public/assets/addons/viterex/`; Hot-File unter `<base>/theme/public/.hot`.
+6. **Classic:** Auf Install ohne `public/index.php` und ohne `theme`-Addon → `structure.json` meldet `"classic"`; Build-Output unter `<base>/dist/`.
+7. **Classic + Theme:** `theme`-Addon aktivieren → `structure.json` meldet `"theme"`; Build-Output unter `<base>/theme/public/dist/`; Hot-File unter `<base>/theme/public/.hot`.
 8. **`.env`-Overrides:** `VITE_STRUCTURE=modern` in einer classic-Installation → erzwingt modern (Cache wird invalidiert, sobald `.env` neuer ist als `structure.json`).
 9. **Hot-File vs. HTTP-Fallback:** Vite crasht ohne Cleanup → mit `VITE_DEV_SERVER` in `.env` übernimmt der HTTP-Probe (200 ms). Ohne → sofort Prod-Mode.
 10. **HTTPS:** `mkcert localhost 127.0.0.1 ::1` + `VITE_HTTPS=true` → Vite serves HTTPS, Hot-File enthält `https://…`. Zertifikate fehlen → stilles Fallback auf HTTP.
@@ -187,7 +278,7 @@ Diese Checkliste prüft end-to-end, ob das Addon in allen drei Strukturen korrek
 ## Known limitations
 
 - **CSP / Nonces:** Im Dev-Modus emittiert der Filter `<script type="module">`-Tags ohne Nonce. Eine strikte Content-Security-Policy mit `script-src 'self'` blockiert daher HMR. Workaround: CSP im Dev temporär lockern, oder im eigenen `boot.php` einen OUTPUT_FILTER mit `LATE`-Priorität registrieren, der die Tags um das passende Nonce-Attribut erweitert.
-- **Multi-Language mit Subpath-Mount:** URLs werden aktuell als Root-absolute Pfade (`/assets/addons/viterex/...`) emittiert. Das ist für 99 % der Installationen korrekt; wer Redaxo unterhalb eines Subpfads mountet, sollte `VITE_DIST_URL` explizit setzen.
+- **Multi-Language mit Subpath-Mount:** URLs werden aktuell als Root-absolute Pfade (`/dist/assets/...`) emittiert. Das ist für 99 % der Installationen korrekt; wer Redaxo unterhalb eines Subpfads mountet, sollte `VITE_DIST_URL` explizit setzen.
 - **Manifest-Caching:** Das Manifest wird pro Request einmal gelesen. Für sehr hoch frequentierte Produktionsinstallationen lässt sich eigenständiges Caching via `rex_cache` nachrüsten — aktuell genügt die Per-Request-Memoization der `Server`-Singleton.
 
 ---
