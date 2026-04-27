@@ -73,16 +73,53 @@ final class Server
 
     public static function getGitBranch(): string
     {
-        $headFile = rex_path::base('.git/HEAD');
-        if (!file_exists($headFile)) {
+        $headFile = self::findGitHeadFile();
+        if ($headFile === null) {
             return 'unknown';
         }
         $contents = rex_file::get($headFile);
         if (!is_string($contents)) {
             return 'unknown';
         }
-        $parts = explode('/', $contents, 3);
-        return isset($parts[2]) ? trim($parts[2]) : 'unknown';
+        $contents = trim($contents);
+
+        // Branch ref: `ref: refs/heads/<branch>`
+        if (preg_match('#^ref:\s*refs/heads/(.+)$#', $contents, $m)) {
+            return $m[1];
+        }
+        // Detached HEAD: the file holds a raw 40-char SHA → short-form
+        if (preg_match('/^[0-9a-f]{40}$/', $contents)) {
+            return substr($contents, 0, 7);
+        }
+        return 'unknown';
+    }
+
+    /**
+     * Resolve the .git/HEAD path at the project root. Handles both regular
+     * repos (`.git` is a directory) and worktrees (`.git` is a file pointing
+     * at the actual git dir via `gitdir: <path>`).
+     */
+    private static function findGitHeadFile(): ?string
+    {
+        $base = rtrim(rex_path::base(), '/');
+        $gitPath = $base . '/.git';
+
+        if (is_dir($gitPath) && is_file($gitPath . '/HEAD')) {
+            return $gitPath . '/HEAD';
+        }
+        if (is_file($gitPath)) {
+            $pointer = rex_file::get($gitPath);
+            if (is_string($pointer) && preg_match('/^gitdir:\s*(.+)$/m', $pointer, $m)) {
+                $gitDir = trim($m[1]);
+                if (!str_starts_with($gitDir, '/')) {
+                    $gitDir = $base . '/' . $gitDir;
+                }
+                if (is_file($gitDir . '/HEAD')) {
+                    return $gitDir . '/HEAD';
+                }
+            }
+        }
+        return null;
     }
 
     /**

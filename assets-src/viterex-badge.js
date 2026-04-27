@@ -17,16 +17,18 @@ if (!scriptTag) {
 	console.log(`ViteRex v${version} | stage: ${stage} | vite: ${viteRunning ? viteUrl : "off"}`);
 
 	const stageClass = classes[stage] || classes.dev;
-	const branchSafe = gitBranch !== "main" && gitBranch !== "master";
+	const branchKnown = gitBranch !== "unknown" && gitBranch !== "n/a";
+	const branchAlert = branchKnown && gitBranch !== "main" && gitBranch !== "master";
 
 	const extrasTemplate = document.getElementById("viterex-badge-extras");
 	const extrasHtml = extrasTemplate ? extrasTemplate.innerHTML : "";
 
 	const dotTitle = viteRunning ? `Vite @ ${viteUrl}` : "Vite is not running";
+	const branchHtml = branchKnown ? `<span class="${classes.branch}">${gitBranch}</span>` : "";
 
 	const badge = document.createElement("div");
 	badge.id = "viterex-badge";
-	badge.className = [classes.wrapper, stageClass, branchSafe ? classes.branchAlert : ""]
+	badge.className = [classes.wrapper, stageClass, branchAlert ? classes.branchAlert : ""]
 		.filter(Boolean)
 		.join(" ");
 	badge.title = `ViteRex • ${stage} • vite ${viteRunning ? "running" : "off"}`;
@@ -38,7 +40,7 @@ if (!scriptTag) {
 			<div class="${classes.infoWrapper}">
 				<span class="${classes.label}">${stage}</span>
 				<span class="${classes.dot} ${viteRunning ? classes.dotOn : classes.dotOff}" title="${dotTitle}"></span>
-				<span class="${classes.branch}">${gitBranch}</span>
+				${branchHtml}
 			</div>
 			<button type="button" class="${classes.clearCache}" title="Clear Redaxo cache">clear cache</button>
 		</div>
