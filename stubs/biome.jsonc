@@ -38,14 +38,7 @@
 	},
 	"css": {
 		"parser": {
-			"cssModules": true
-		},
-		"linter": {
-			"rules": {
-				"correctness": {
-					"noUnknownAtRule": "off"
-				}
-			}
+			"tailwindDirectives": true
 		}
 	}
 }
