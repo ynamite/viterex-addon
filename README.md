@@ -1,39 +1,45 @@
 <img width="1672" height="941" alt="Viterex Addon" src="https://github.com/user-attachments/assets/371153d5-31e9-4670-8dbe-30034e0d9dcb" />
 
-# ViteRex für REDAXO 5
+# ViteRex für REDAXO 5 – So lernt der Dino rennen.
  
-ViteRex ist ein eigenständiges Redaxo-Addon, das ein modernes Vite-Frontend (Tailwind 4, Live-Reload, Hot-Module-Replacement) in **jede** Redaxo-Installation einbringt — egal ob klassische, moderne oder Theme-Addon Ordnerstruktur. Pfade konfigurierst du im Backend; auf Knopfdruck scaffolded das Addon `package.json`, `vite.config.js`, Dev-Tooling-Defaults, Beispiel-Entries und merged `.gitignore`-Einträge in dein Projekt-Root.
+ViteRex ist ein eigenständiges Redaxo-Addon, das ein modernes Vite-Frontend (Tailwind 4, Live-Reload, Hot-Module-Replacement, JS imports) in **jede** Redaxo-Installation einbringt — egal ob klassische, moderne oder Theme-Addon Ordnerstruktur. Pfade konfigurierst du im Backend; auf Knopfdruck stellt das Addon `package.json`, `vite.config.js`, `uvm.` bereit, inkl. Dev-Tooling-Defaults, Beispiel-Entries sowie `.gitignore`-Einträge in deinem Projekt-Root.
 
 ---
 
 ## Installation
 
-**Über den Redaxo Installer (empfohlen):** Backend → _AddOns → Installer_, `viterex` suchen, herunterladen, aktivieren.
+**Über den Redaxo Installer (empfohlen):** Backend → _AddOns → Installer_, `viterex_addon` suchen, herunterladen, aktivieren.
 
-**Manuell von GitHub:** Repo nach `redaxo/src/addons/viterex/` (modern) bzw. `addons/viterex/` (classic) entpacken, im Backend installieren und aktivieren.
+**Manuell von GitHub:** Repo nach `/src/addons/viterex_addon/` (modern) bzw. `redaxo/src/addons/viterex_addon/` (classic/Theme-Addon) entpacken, im Backend installieren und aktivieren.
 
-Beim Installieren passiert **nichts im Projekt-Root** — das Addon registriert sich nur und seedet `var/data/addons/viterex/structure.json` mit den Default-Pfaden. Konfiguration und Scaffolding läuft danach über das Backend.
+Beim Installieren passiert **nichts im Projekt-Root** — das Addon registriert sich nur und seedet `var/data/addons/viterex/structure.json` mit den Default-Pfaden. Konfiguration und Bereitstellung der nötigen Dateien läuft danach über das Backend.
 
 ---
 
 ## Erste Schritte
 
 1. **Backend → AddOns → ViteRex → Settings** öffnen.
-2. Pfade reviewen / anpassen — Defaults sind modern (ydeploy)-tauglich (`src/assets/js/main.js`, `public/dist`, `/dist`). Für `classic`: `Public directory` leer lassen, `Build output directory` auf `dist`. Für `theme`: `theme/public` und `theme/public/dist`.
-3. Form speichern (synchronisiert `structure.json`).
-4. Auf den Button **Install stubs** klicken. Das Häkchen _Overwrite existing files_ steuert, was mit bereits vorhandenen Dateien passiert — **mit Häkchen** wird vorher ein zeitstempel-Backup angelegt (`<datei>.bak.YYYYmmdd-HHiiss`), niemals stillschweigend überschrieben. Gescaffolded werden:
+2. Pfade prüfen / anpassen
+   — Standardeinstellung sind für die `moderne` Ordnerstruktur (`src/assets/js/main.js`, `public/dist`, `/dist`).
+   - Für `klassische` Ordnestruktur: `Public directory` leer lassen, `Build output directory` auf `dist`.
+   - Mit `Theme-Addon`: `theme/public` und `theme/public/dist`.
+4. Formular speichern (synchronisiert `structure.json`).
+5. Auf den Button **Install stubs** klicken. 
+   Das Häkchen _Overwrite existing files_ steuert, was mit bereits vorhandenen Dateien passiert — **mit Häkchen** wird vorher ein zeitstempel-Backup angelegt (`<datei>.bak.YYYYmmdd-HHiiss`). Nichts wird stillschweigend überschrieben!
+Bereitgestellt werden:
    - `package.json` (Vite 8 + Tailwind 4 + Plugins + Dev-Tooling)
    - `vite.config.js` (minimal, Laravel-style — der Import-Pfad zu `viterex-vite-plugin.js` wird aus deiner `Public directory`-Einstellung generiert)
    - `.env.example`, `.browserslistrc`, `.prettierrc`, `biome.jsonc`, `stylelint.config.js`, `jsconfig.json`
    - `<assets_source_dir>/js/main.js` und `<assets_source_dir>/css/style.css`
-5. `.gitignore` wird zeilenweise gescannt — fehlende ViteRex-Einträge (inkl. `.vite-hot`, `.vite-reload-trigger`, mkcert-Certs) werden unter einer `# Added by viterex`-Markierung ergänzt.
-6. `npm install && npm run dev` — fertig. Vite startet, `.vite-hot` taucht im Projekt-Root auf, Browser zeigt deine Seite mit HMR.
+6. `.gitignore` wird zeilenweise gescannt — fehlende ViteRex-Einträge (inkl. `.vite-hot`, `.vite-reload-trigger`, mkcert-Certs) werden unter einer `# Added by viterex`-Markierung ergänzt.
+7. `npm install && npm run dev` — fertig. Vite startet, `.vite-hot` taucht im Projekt-Root auf, Browser zeigt deine Seite mit HMR.
 
 ---
 
 ## Der `REX_VITE`-Platzhalter
 
-In beliebigen Redaxo-Templates:
+In beliebigen Redaxo-Templates den `REX_VITE` Platzhalter im `<head>` ergänzen.
+*Wichtig:* wird `REX_VITE` in der gerenderten Seite nicht gefunden, fügt der Output-Filter den Block automatisch vor dem ersten `</head>` ein.
 
 ```php
 <!doctype html>
@@ -52,7 +58,7 @@ Formen:
 
 | Form                                                              | Verhalten                                         |
 | ----------------------------------------------------------------- | ------------------------------------------------- |
-| `REX_VITE`                                                        | Default-Entries (CSS + JS) aus den CRUD-Settings. |
+| `REX_VITE`                                                        | Default-Entries (CSS + JS) aus den Settings. |
 | `REX_VITE[src="src/assets/js/main.js"]`                           | Einzelner expliziter Entry.                       |
 | `REX_VITE[src="src/assets/css/style.css\|src/assets/js/main.js"]` | Mehrere Entries, pipe-separiert.                  |
 
@@ -63,22 +69,15 @@ Pro Vorkommen werden in dieser Reihenfolge ausgegeben:
 3. `<script type="module" src="<devUrl>/@vite/client">` (nur Dev, einmal pro Vorkommen mit JS-Entries).
 4. `<script type="module" src="...">` pro JS-Entry.
 
-**Auto-Insert-Fallback**: wird `REX_VITE` in der gerenderten Seite nicht gefunden, fügt der Output-Filter den Block automatisch vor dem ersten `</head>` ein.
-
-Frontend-only — backend bails früh.
-
 ---
 
 ## PHP-Helpers für statische Assets
 
-Für Assets, die aus PHP-Templates referenziert werden (Background-Images, Logos, inline SVG):
+Für Assets (Dateien), die aus PHP-Templates referenziert werden (Background-Images, Logos, inline SVG):
 
 ```php
 use Ynamite\ViteRex\Assets;
 
-// URL für ein bereits existierendes Asset (Browser):
-//   dev  → https://localhost:5173/src/assets/img/logo-640w.webp
-//   prod → /dist/assets/img/logo-640w.webp
 <img src="<?= Assets::url('img/logo-640w.webp') ?>">
 
 // CSS background-image:
@@ -91,13 +90,11 @@ $svgPath = Assets::path('img/logo.svg');
 <?= Assets::inline('img/icon-arrow.svg') ?>
 ```
 
-Damit Assets in Produktion unter den `Assets::url()`-Pfaden existieren, müssen sie beim Build kopiert werden — das übernimmt `vite-plugin-static-copy`, gesteuert via `Static copy directories` in den Settings (Default: `img`).
-
-Assets, die per JS oder CSS importiert werden (`import "../img/foo.png?url"` oder `background: url("../img/foo.png")`), werden von Vite ohnehin gehasht und in `manifest.json` eingetragen — keine Extra-Konfiguration nötig.
+Assets, die per JS oder CSS importiert werden (`import "../img/foo.png?url"` oder `background: url("../img/foo.png")`), werden von Vite automatisch verarbeitet (gehasht) und in `manifest.json` eingetragen — keine Extra-Konfiguration nötig.
 
 ---
 
-## Settings-Felder (CRUD)
+## Settings-Felder
 
 | Feld                        | Default                    | Zweck                                                                                                                |
 | --------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -129,9 +126,7 @@ src/assets/**/(*.svg|*.png|*.jpg|*.jpeg|*.webp|*.avif|*.gif|*.woff|*.woff2)
 
 Die ersten fünf Globs decken **direkte Datei-Änderungen** ab (du speicherst eine PHP-Datei in deiner IDE → Reload).
 
-`.vite-reload-trigger` ist ein **Signal-File** für **Backend-getriebene Content-Änderungen**. `boot.php` registriert Handler auf ~30 Redaxo-Extension-Points (`ART_*`, `CAT_*`, `SLICE_*`, `MEDIA_*`, `TEMPLATE_*`, `MODULE_*`, `CLANG_*`, `YFORM_DATA_*`), die bei jedem Save die mtime von `<base>/.vite-reload-trigger` aktualisieren. Vite sieht die Änderung → Reload.
-
-Wichtig: dieses Signal feuert **nur bei tatsächlichen Admin-Save-Aktionen**, nicht bei Cache-Misses während normaler Frontend-Navigation (was die alte cache-dir-basierte Variante tat und zu unnötigen Reloads führte).
+`.vite-reload-trigger` ist ein **Signal-File** für **Backend-getriebene Content-Änderungen**. `boot.php` registriert Handler auf ~30 Redaxo-Extension-Points (`ART_*`, `CAT_*`, `SLICE_*`, `MEDIA_*`, `TEMPLATE_*`, `MODULE_*`, `CLANG_*`, `YFORM_DATA_*`). Vite sieht die Änderung → Reload.
 
 ---
 
@@ -197,7 +192,7 @@ User wechselt dann in seiner `vite.config.js` einfach den Import + Plugin-Aufruf
 
 ---
 
-## Das Badge
+## Das ViteRexBadge
 
 Bei aktiver Backend-Session und Nicht-Prod/Nicht-Staging-Umgebung wird ein Badge unten am Fenster eingeblendet (Frontend + Backend). Zeigt: Stage (`dev`/`staging`/`prod`), Git-Branch, ein farbiger Punkt für den Vite-Status (an = Stage-Farbe + Glow; aus = grau) mit **Tooltip** auf Hover (`Vite @ <url>`), ViteRex- und Redaxo-Version, **Clear cache**-Button (CSRF-geschützter POST). Andere Addons können via `VITEREX_BADGE`-Extension-Point eigene Panels hinzufügen.
 
