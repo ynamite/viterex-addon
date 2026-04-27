@@ -68,7 +68,8 @@ jobs:
           files: viterex_addon.zip
           name: viterex_addon-${{ github.event.release.tag_name }}.zip
 
-      - uses: FriendsOfREDAXO/installer-action@v1
+      - uses: FriendsOfREDAXO/installer-action@1.2.0
+
         with:
           myredaxo-username: ${{ secrets.MYREDAXO_USERNAME }}
           myredaxo-api-key: ${{ secrets.MYREDAXO_API_KEY }}

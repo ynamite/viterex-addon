@@ -1,7 +1,8 @@
 package: viterex_addon
 version: '3.0.0'
-author: ynamite
-supportpage: https://github.com/ynamite/viterex-addon
+license: MIT
+author: Yves Torres
+supportpage: https://github.com/ynamite/viterex_addon
 perm: viterex[]
 
 page:

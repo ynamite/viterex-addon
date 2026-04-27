@@ -1,6 +1,6 @@
 # ViteRex 3.0.0 — Standalone Redaxo Addon
 
-> **Breaking release.** v2.x users: see [Migration](#migration-from-v2x).
+> **Breaking release.** v1.x users: see [Migration](#migration-from-v1x).
 
 ViteRex is now a fully standalone Redaxo addon, installable in **any** Redaxo setup (`classic`, `modern`/ydeploy, or with the `theme` addon). Configuration lives in the Redaxo backend; on a button click the addon scaffolds a complete Vite + Tailwind 4 frontend pipeline into your project root.
 
@@ -22,14 +22,12 @@ ViteRex is now a fully standalone Redaxo addon, installable in **any** Redaxo se
 
 ## Installation
 
-> **Not via Composer.** As a regular Redaxo addon.
-
-- **Redaxo Installer (recommended):** Backend → *AddOns → Installer*, search `viterex`, download, activate.
+- **Redaxo Installer (recommended):** Backend → _AddOns → Installer_, search `viterex`, download, activate.
 - **Manual from GitHub:** unpack into `redaxo/src/addons/viterex/` (modern) or `addons/viterex/` (classic), then install + activate in the backend.
 
-After activation: open *AddOns → ViteRex → Settings*, review the defaults (modern-friendly out of the box; for classic/theme adjust `Public directory` and `Build output directory`), save, then click **Install Stubs**.
+After activation: open _AddOns → ViteRex → Settings_, review the defaults (modern-friendly out of the box; for classic/theme adjust `Public directory` and `Build output directory`), save, then click **Install Stubs**.
 
-## Migration from v2.x
+## <a id="migration-from-v1x"></a> Migration from v1.x
 
 - **`Assets::get()` removed** — templates that called `<?= $assets['js'] ?>` / `$assets['css']` / `$assets['preload']` should switch to `REX_VITE[src="…"]`, or simply remove the placeholder and rely on auto-insert before `</head>`.
 - **`Server::getAssetsUrl()` / `getImg()` / `getCss()` / `getFont()` / `getJs()` / `getAssetsPath()` removed** — replaced by `Assets::url()`, `Assets::path()`, `Assets::inline()`.
@@ -44,8 +42,8 @@ After activation: open *AddOns → ViteRex → Settings*, review the defaults (m
 
 ## Documentation
 
-Full docs in [README.md](https://github.com/ynamite/viterex-addon/blob/main/README.md) — covers the `REX_VITE` placeholder, PHP helpers, CRUD settings reference, extending the Vite plugin (Laravel-style), block_peek integration, and a testing checklist.
+Full docs in [README.md](https://github.com/ynamite/viterex_addon/blob/main/README.md) — covers the `REX_VITE` placeholder, PHP helpers, CRUD settings reference, extending the Vite plugin (Laravel-style), block_peek integration, and a testing checklist.
 
 ## Issues / Feedback
 
-Bug reports and feature requests on [GitHub Issues](https://github.com/ynamite/viterex-addon/issues).
+Bug reports and feature requests on [GitHub Issues](https://github.com/ynamite/viterex_addon/issues).

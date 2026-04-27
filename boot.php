@@ -2,7 +2,7 @@
 /*
  * Redaxo CMS Vite integration
  *
- *  @author      ynamite @ GitHub <https://github.com/ynamite/viterex-addon>
+ *  @author      ynamite @ GitHub <https://github.com/ynamite/viterex_addon>
  *
  *  For copyright and license information, please view the LICENSE.md
  *  file that was distributed with this source code.
@@ -36,13 +36,33 @@ $viterexReloadSignal = static function (): void {
     @touch(rex_path::base('.vite-reload-trigger'));
 };
 $viterexReloadEps = [
-    'ART_ADDED', 'ART_UPDATED', 'ART_DELETED', 'ART_MOVED', 'ART_COPIED', 'ART_STATUS',
-    'CAT_ADDED', 'CAT_UPDATED', 'CAT_DELETED', 'CAT_MOVED', 'CAT_STATUS',
-    'SLICE_ADDED', 'SLICE_UPDATED', 'SLICE_DELETED', 'SLICE_MOVE',
-    'MEDIA_ADDED', 'MEDIA_UPDATED', 'MEDIA_DELETED',
-    'CLANG_ADDED', 'CLANG_UPDATED', 'CLANG_DELETED',
-    'TEMPLATE_ADDED', 'TEMPLATE_UPDATED', 'TEMPLATE_DELETED',
-    'MODULE_ADDED', 'MODULE_UPDATED', 'MODULE_DELETED',
+    'ART_ADDED',
+    'ART_UPDATED',
+    'ART_DELETED',
+    'ART_MOVED',
+    'ART_COPIED',
+    'ART_STATUS',
+    'CAT_ADDED',
+    'CAT_UPDATED',
+    'CAT_DELETED',
+    'CAT_MOVED',
+    'CAT_STATUS',
+    'SLICE_ADDED',
+    'SLICE_UPDATED',
+    'SLICE_DELETED',
+    'SLICE_MOVE',
+    'MEDIA_ADDED',
+    'MEDIA_UPDATED',
+    'MEDIA_DELETED',
+    'CLANG_ADDED',
+    'CLANG_UPDATED',
+    'CLANG_DELETED',
+    'TEMPLATE_ADDED',
+    'TEMPLATE_UPDATED',
+    'TEMPLATE_DELETED',
+    'MODULE_ADDED',
+    'MODULE_UPDATED',
+    'MODULE_DELETED',
 ];
 if (rex_addon::get('yform')->isAvailable()) {
     $viterexReloadEps[] = 'YFORM_DATA_ADDED';
