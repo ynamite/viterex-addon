@@ -12,12 +12,15 @@ use rex_yrewrite;
  * Single source of truth for ViteRex paths and runtime config.
  *
  * Persisted via rex_config (table `rex_config`, namespace `viterex`).
- * Mirrored to a JSON cache (`rex_path::addonData('viterex', 'structure.json')`)
- * that the Vite plugin reads on the Node side.
+ * Mirrored to a JSON cache at `rex_path::addonData('viterex', 'structure.json')`
+ * that the Vite plugin reads on the Node side. All paths in the JSON are
+ * relative to project root — the plugin resolves with `path.resolve(cwd, ...)`.
  */
 final class Config
 {
-    public const DEFAULT_REFRESH_GLOBS = "src/templates/**/*.php\nsrc/modules/**/*.php\nsrc/addons/**/fragments/**/*.php\nsrc/addons/**/lib/**/*.php\nvar/cache/addons/structure/**\nvar/cache/addons/url/**";
+    public const DEFAULT_REFRESH_GLOBS = "src/modules/**/*.php\nsrc/templates/**/*.php\nsrc/addons/project/fragments/**/*.php\nsrc/addons/project/lib/**/*.php\nsrc/assets/**/(*.svg|*.png|*.jpg|*.jpeg|*.webp|*.avif|*.gif|*.woff|*.woff2)\nvar/cache/addons/(structure|url)/**";
+
+    public const HOT_FILE_REL = '.vite-hot';
 
     /** @var array<string,string> */
     private const DEFAULTS = [
@@ -30,20 +33,42 @@ final class Config
         'build_url_path'    => '/dist',
         'copy_dirs'         => 'img',
         'https_enabled'     => '0',
-        // refresh_globs default applied lazily so const can be referenced
     ];
 
     public static function get(string $key): string
     {
-        $default = $key === 'refresh_globs'
-            ? self::DEFAULT_REFRESH_GLOBS
-            : (self::DEFAULTS[$key] ?? '');
-        return (string) rex_config::get('viterex', $key, $default);
+        return (string) rex_config::get('viterex', $key, self::defaultFor($key));
     }
 
     public static function set(string $key, string $value): void
     {
         rex_config::set('viterex', $key, $value);
+        self::syncStructureJson();
+    }
+
+    /** Default value for a single key (refresh_globs handled separately). */
+    public static function defaultFor(string $key): string
+    {
+        if ($key === 'refresh_globs') {
+            return self::DEFAULT_REFRESH_GLOBS;
+        }
+        return self::DEFAULTS[$key] ?? '';
+    }
+
+    /**
+     * Seed rex_config with defaults for any keys that are unset OR currently empty.
+     * Run on install + on the "Reset to defaults" button on the Settings page.
+     * Empty strings are seeded too because rex_config_form writes empty inputs as ''
+     * — without seeding, the form would render empty placeholders forever.
+     */
+    public static function seedDefaults(): void
+    {
+        foreach (self::keys() as $key) {
+            $current = rex_config::get('viterex', $key);
+            if ($current === null || $current === '') {
+                rex_config::set('viterex', $key, self::defaultFor($key));
+            }
+        }
         self::syncStructureJson();
     }
 
@@ -72,7 +97,7 @@ final class Config
 
     public static function getHotFilePath(): string
     {
-        return rex_path::base('.vite-hot');
+        return rex_path::base(self::HOT_FILE_REL);
     }
 
     public static function getHostUrl(): string
@@ -92,17 +117,27 @@ final class Config
     }
 
     /**
-     * Write the structure.json file the Vite plugin reads.
-     * Path resolves correctly per Redaxo structure (modern → var/data, classic+theme → redaxo/data).
+     * Write the structure.json file the Vite plugin reads. Path resolves correctly
+     * per Redaxo structure (modern → var/data, classic+theme → redaxo/data).
+     *
+     * All paths are relative to project root; `https_enabled` is a real bool.
      */
     public static function syncStructureJson(): void
     {
         $cfg = self::all();
-        $payload = $cfg + [
-            'out_dir_fs'       => rex_path::base($cfg['out_dir']),
-            'assets_source_fs' => rex_path::base($cfg['assets_source_dir']),
-            'hot_file_path'    => self::getHotFilePath(),
-            'host_url'         => self::getHostUrl(),
+        $payload = [
+            'js_entry'          => $cfg['js_entry'],
+            'css_entry'         => $cfg['css_entry'],
+            'public_dir'        => $cfg['public_dir'],
+            'out_dir'           => $cfg['out_dir'],
+            'assets_source_dir' => $cfg['assets_source_dir'],
+            'assets_sub_dir'    => $cfg['assets_sub_dir'],
+            'build_url_path'    => $cfg['build_url_path'],
+            'copy_dirs'         => $cfg['copy_dirs'],
+            'https_enabled'     => $cfg['https_enabled'] === '1',
+            'refresh_globs'     => $cfg['refresh_globs'],
+            'hot_file'          => self::HOT_FILE_REL,
+            'host_url'          => self::getHostUrl(),
         ];
         rex_file::put(
             rex_path::addonData('viterex', 'structure.json'),

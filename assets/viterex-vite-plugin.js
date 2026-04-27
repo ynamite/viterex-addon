@@ -66,12 +66,12 @@ function detectTlsCerts(cwd) {
 	return null;
 }
 
-function resolveCopyTargets(structure, cwd) {
+function resolveCopyTargets(structure) {
 	const dirs = (structure.copy_dirs || "img")
 		.split(",")
 		.map((d) => d.trim())
 		.filter(Boolean);
-	const sourceRel = path.relative(cwd, structure.assets_source_fs) || ".";
+	const sourceRel = (structure.assets_source_dir || "src/assets").replace(/^\/+|\/+$/g, "");
 	return dirs.map((dir) => ({
 		src: `${sourceRel}/${dir}/*`,
 		dest: `${structure.assets_sub_dir}/${dir}`,
@@ -118,6 +118,11 @@ export default function viterex(options = {}) {
 	const structure = loadStructureJson();
 	const cwd = process.cwd();
 
+	// All structure.json paths are relative to project root; resolve to absolutes here.
+	const hotFileFs = path.resolve(cwd, structure.hot_file || ".vite-hot");
+	const outDirFs = path.resolve(cwd, structure.out_dir || "public/dist");
+	const assetsSourceFs = path.resolve(cwd, structure.assets_source_dir || "src/assets");
+
 	const resolvedInputs = input
 		? input.map((p) => path.resolve(cwd, p))
 		: [path.resolve(cwd, structure.css_entry), path.resolve(cwd, structure.js_entry)];
@@ -134,12 +139,12 @@ export default function viterex(options = {}) {
 		refreshGlobs = refresh;
 	}
 
-	const https = detectTls && structure.https_enabled === "1" ? detectTlsCerts(cwd) : null;
+	const https = detectTls && structure.https_enabled === true ? detectTlsCerts(cwd) : null;
 
-	const plugins = [hotFilePlugin(structure.hot_file_path)];
+	const plugins = [hotFilePlugin(hotFileFs)];
 
 	if (injectConfig) {
-		const buildUrlPath = "/" + structure.build_url_path.replace(/^\/+|\/+$/g, "");
+		const buildUrlPath = "/" + (structure.build_url_path || "/dist").replace(/^\/+|\/+$/g, "");
 
 		plugins.push({
 			name: "viterex",
@@ -154,7 +159,7 @@ export default function viterex(options = {}) {
 						},
 					},
 					build: {
-						outDir: userConfig.build?.outDir ?? structure.out_dir_fs,
+						outDir: userConfig.build?.outDir ?? outDirFs,
 						assetsDir: userConfig.build?.assetsDir ?? structure.assets_sub_dir,
 						emptyOutDir: userConfig.build?.emptyOutDir ?? true,
 						manifest: userConfig.build?.manifest ?? true,
@@ -170,13 +175,13 @@ export default function viterex(options = {}) {
 						...(https ? { https: userConfig.server?.https ?? https } : {}),
 					},
 					resolve: {
-						alias: userConfig.resolve?.alias ?? [{ find: "@", replacement: structure.assets_source_fs }],
+						alias: userConfig.resolve?.alias ?? [{ find: "@", replacement: assetsSourceFs }],
 					},
 				};
 			},
 		});
 
-		const copyTargets = resolveCopyTargets(structure, cwd);
+		const copyTargets = resolveCopyTargets(structure);
 		if (copyTargets.length > 0) {
 			plugins.push(viteStaticCopy({ targets: copyTargets }));
 		}
