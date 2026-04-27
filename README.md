@@ -4,6 +4,7 @@ ViteRex ist ein eigenständiges Redaxo-Addon, das ein modernes Vite-Frontend (Ta
 
 <img width="1672" height="941" alt="Viterex Addon" src="https://github.com/user-attachments/assets/371153d5-31e9-4670-8dbe-30034e0d9dcb" />
 
+
 > **Vorgängerversion 1.x**: siehe [Migration](##migration-from-v1x). v3 ist eine breaking release.
 
 ---
