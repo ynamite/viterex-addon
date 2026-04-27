@@ -34,8 +34,8 @@ jobs:
 
       - name: Create release archive
         run: |
-          zip -r viterex.zip . \
-            -x "viterex.zip" \
+          zip -r viterex-addon.zip . \
+            -x "viterex-addon.zip" \
             -x "node_modules/*" \
             -x ".git/*" \
             -x ".github/*" \
