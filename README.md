@@ -231,30 +231,9 @@ Die `assets/`-Baum wird mitcommittet (Badge-Build + `viterex-vite-plugin.js`) un
 
 ---
 
-## Testing your installation
-
-End-to-end-Checkliste:
-
-1. **Fresh install (modern):** Aktivieren → Settings öffnen → Defaults sehen. Form speichern → `var/data/addons/viterex/structure.json` existiert. **Install stubs** klicken → `package.json`, `vite.config.js`, `.env.example`, `src/assets/{js,css}/`, etc. erscheinen am Projekt-Root. `vite.config.js` enthält `import ... from "./public/assets/addons/viterex/viterex-vite-plugin.js"`. `npm install && npm run dev` → Vite startet, `.vite-hot` erscheint.
-2. **Reinstall stubs (overwrite checked):** Ersetzt Files. **Reinstall stubs (overwrite unchecked):** Listet Skipped Files.
-3. **Dev-Mode (default REX_VITE):** Template lädt → drei Tags sichtbar (CSS-Link, `@vite/client`-Script, JS-Script).
-4. **Auto-Insert:** Template ohne `REX_VITE` → derselbe Block wird vor `</head>` eingefügt.
-5. **Prod-Mode:** `npm run build` → Manifest unter `public/dist/.vite/manifest.json`. Vite stoppen → reload → gehashte URLs unter `/dist/assets/`.
-6. **Static-copy:** Datei in `src/assets/img/` legen → `npm run build` → existiert unter `public/dist/assets/img/`.
-7. **Assets::url/path/inline:** `<?= Assets::url('img/logo.png') ?>` → dev-server-URL in dev, `/dist/assets/img/logo.png` in prod.
-8. **Classic:** Settings → `Public directory` leer, `Build output directory` `dist`. Install stubs (overwrite) → vite.config.js-Import-Pfad wird `./assets/addons/viterex/viterex-vite-plugin.js`. Build outputs nach `<base>/dist/`.
-9. **Theme:** Settings → `Public directory` `theme/public`, `Build output directory` `theme/public/dist`. Install stubs.
-10. **HTTPS:** `npm run setup-https` → Certs erzeugt. Settings → _Enable HTTPS_ aktivieren → save → reload Vite. Hot-File enthält `https://`.
-11. **Badge:** Frontend + Backend sichtbar, Stage korrekt, Vite-Running flippt beim Start/Stopp, Clear-Cache funktioniert, `VITEREX_BADGE`-Extension-Point lädt Extra-Panels.
-12. **Keine Regressionen:** `YREWRITE_SEO_TAGS`-noindex bei Nicht-Prod aktiv. Backend-Bail im OUTPUT_FILTER funktioniert.
-
----
-
 ## Known limitations
 
 - **CSP / Nonces:** Im Dev emittiert der Output-Filter `<script type="module">` ohne Nonce. Strikte CSP mit `script-src 'self'` blockiert HMR. Workaround: CSP im Dev lockern oder Output-Filter mit `LATE`-Priorität registrieren, der die Tags um Nonce-Attribute erweitert.
-- **Multi-Language mit Subpath-Mount:** URLs als root-absolute Pfade (`/dist/assets/...`). Für 99 % korrekt; Subpath-Mounts brauchen `Build URL prefix` explizit angepasst.
-- **Manifest-Caching:** Pro Request einmal gelesen. Für hochfrequente Prod-Installations lohnt sich `rex_cache`-Wrapping im Server-Singleton.
 
 ---
 
@@ -268,6 +247,5 @@ Bug-Reports & Features auf [GitHub](https://github.com/ynamite/viterex_addon/iss
 
 ## Credits
 
-- [FriendsOfREDAXO](https://github.com/FriendsOfREDAXO)
 - Project Lead: [Yves Torres](https://github.com/ynamite)
 - Inspired by [laravel-vite-plugin](https://github.com/laravel/vite-plugin)
