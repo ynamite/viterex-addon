@@ -1,0 +1,13 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
+
+/* Your custom styles below. */
+:root {
+	color-scheme: light dark;
+}
+
+body {
+	margin: 0;
+	font-family: system-ui, sans-serif;
+}

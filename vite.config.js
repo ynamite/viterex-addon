@@ -31,8 +31,11 @@ export default defineConfig({
 
 	// Build configuration
 	build: {
-		// Output directory relative to project root
-		outDir: "../assets",
+		// Output directory relative to project root.
+		// IMPORTANT: dedicated `badge/` subfolder so emptyOutDir doesn't nuke the
+		// committed `assets/vite/` helpers that ship to user projects via
+		// Redaxo's addon-asset auto-copy.
+		outDir: "../assets/badge",
 
 		// Empty output directory before building
 		emptyOutDir: true,

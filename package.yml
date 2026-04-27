@@ -3,8 +3,36 @@ name: ViteRex
 version: '3.0.0'
 author: ynamite
 supportpage: https://github.com/ynamite/viterex-addon
+perm: viterex[]
+
+page:
+  title: 'translate:viterex_title'
+  icon: rex-icon fa-bolt
+  perm: viterex[]
+  subpages:
+    settings:
+      title: 'translate:viterex_settings'
+      icon: rex-icon fa-cog
+    docs:
+      title: 'translate:viterex_docs'
+      subPath: README.md
+      icon: rex-icon fa-book
+      itemclass: pull-right
 
 requires:
   redaxo: '^5.13.0'
   php:
     version: '>=8.1'
+
+installer_ignore:
+  - node_modules
+  - assets-src
+  - scripts
+  - .github
+  - jsconfig.json
+  - package.json
+  - package-lock.json
+  - postcss.config.js
+  - vite.config.js
+  - .DS_Store
+  - .editorconfig

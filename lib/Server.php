@@ -11,14 +11,12 @@ final class Server
 {
     private static ?self $instance = null;
 
-    private Structure $structure;
     private bool $isDev = false;
     private ?string $devUrl = null;
     private array $manifest = [];
 
     public function __construct()
     {
-        $this->structure = Structure::detect();
         [$this->isDev, $this->devUrl] = $this->resolveDevState();
         $this->manifest = $this->readManifest();
         $this->checkDebugMode();
@@ -42,11 +40,6 @@ final class Server
     public function getManifestArray(): array
     {
         return $this->manifest;
-    }
-
-    public function getStructure(): Structure
-    {
-        return $this->structure;
     }
 
     public static function isProductionDeployment(): bool
@@ -126,9 +119,12 @@ final class Server
         rex_file::putConfig($configFile, $config);
     }
 
+    /**
+     * Hot-file primary; HTTP probe fallback only when env-configured.
+     */
     private function resolveDevState(): array
     {
-        $hotFilePath = $this->structure->getHotFilePath();
+        $hotFilePath = Config::getHotFilePath();
         if (file_exists($hotFilePath)) {
             $contents = rex_file::get($hotFilePath);
             if (is_string($contents) && trim($contents) !== '') {
@@ -136,18 +132,22 @@ final class Server
             }
         }
 
-        $configuredServer = Structure::env('VITE_DEV_SERVER');
+        $configuredServer = self::env('VITE_DEV_SERVER');
         if ($configuredServer === null) {
             return [false, null];
         }
-
-        $configuredPort = Structure::env('VITE_DEV_SERVER_PORT');
+        $configuredPort = self::env('VITE_DEV_SERVER_PORT');
         $devUrl = $configuredServer . ($configuredPort !== null ? ':' . $configuredPort : '');
         if ($this->probeHttp($devUrl . '/@vite/client')) {
             return [true, $devUrl];
         }
-
         return [false, null];
+    }
+
+    private static function env(string $key): ?string
+    {
+        $value = $_ENV[$key] ?? $_SERVER[$key] ?? null;
+        return is_string($value) && $value !== '' ? $value : null;
     }
 
     private function probeHttp(string $url): bool
@@ -167,7 +167,8 @@ final class Server
 
     private function readManifest(): array
     {
-        $manifestFile = rex_file::get($this->structure->getManifestPath());
+        $manifestPath = rex_path::base(trim(Config::get('out_dir'), '/')) . '/.vite/manifest.json';
+        $manifestFile = rex_file::get($manifestPath);
         if (!is_string($manifestFile) || $manifestFile === '') {
             return [];
         }

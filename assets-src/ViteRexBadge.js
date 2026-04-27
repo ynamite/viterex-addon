@@ -1,6 +1,32 @@
 import "./ViteRexBadge.module.css";
 import classes from "./ViteRexBadge.module.css";
 
+async function copyToClipboard(text) {
+	if (navigator.clipboard?.writeText) {
+		try {
+			await navigator.clipboard.writeText(text);
+			return true;
+		} catch {
+			// fall through to legacy fallback (Clipboard API requires secure context)
+		}
+	}
+	const ta = document.createElement("textarea");
+	ta.value = text;
+	ta.setAttribute("readonly", "");
+	ta.style.position = "absolute";
+	ta.style.left = "-9999px";
+	document.body.appendChild(ta);
+	ta.select();
+	let ok = false;
+	try {
+		ok = document.execCommand("copy");
+	} catch {
+		ok = false;
+	}
+	document.body.removeChild(ta);
+	return ok;
+}
+
 const scriptTag = document.getElementById("viterex-badge-script");
 
 if (!scriptTag) {
@@ -56,16 +82,12 @@ if (!scriptTag) {
 			event.stopPropagation();
 			const url = viteUrlBtn.getAttribute("data-url");
 			if (!url) return;
-			try {
-				await navigator.clipboard.writeText(url);
-				const original = viteUrlBtn.textContent;
-				viteUrlBtn.textContent = "copied";
-				setTimeout(() => {
-					viteUrlBtn.textContent = original;
-				}, 1200);
-			} catch (error) {
-				console.warn("ViteRexBadge: could not copy URL", error);
-			}
+			const ok = await copyToClipboard(url);
+			const original = viteUrlBtn.textContent;
+			viteUrlBtn.textContent = ok ? "copied" : "copy failed";
+			setTimeout(() => {
+				viteUrlBtn.textContent = original;
+			}, 1200);
 		});
 	}
 

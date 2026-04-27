@@ -9,14 +9,13 @@ final class Preload
 {
     private static ?self $instance = null;
 
-    private Structure $structure;
     private array $manifest;
+    private string $buildUrlPath;
 
     public function __construct()
     {
-        $server = Server::factory();
-        $this->structure = $server->getStructure();
-        $this->manifest = $server->getManifestArray();
+        $this->manifest = Server::factory()->getManifestArray();
+        $this->buildUrlPath = '/' . trim(Config::get('build_url_path'), '/');
     }
 
     public static function factory(): self
@@ -72,6 +71,11 @@ final class Preload
         }
         $visited[$file] = true;
 
+        // CSS-only entries: rendered via <link rel="stylesheet">; no preload needed.
+        if (strtolower(pathinfo($file, PATHINFO_EXTENSION)) === 'css') {
+            return [];
+        }
+
         $lines = [$this->modulePreload($file)];
 
         foreach (($entry['css'] ?? []) as $cssFile) {
@@ -105,21 +109,18 @@ final class Preload
 
     private function modulePreload(string $file): string
     {
-        $url = $this->url($file);
-        return '<link rel="modulepreload" href="' . htmlspecialchars($url) . '">';
+        return '<link rel="modulepreload" href="' . htmlspecialchars($this->url($file)) . '">';
     }
 
     private function stylePreload(string $file): string
     {
-        $url = $this->url($file);
-        return '<link rel="preload" href="' . htmlspecialchars($url) . '" as="style">';
+        return '<link rel="preload" href="' . htmlspecialchars($this->url($file)) . '" as="style">';
     }
 
     private function assetPreload(string $asset): ?string
     {
         $url = $this->url($asset);
         $ext = strtolower(pathinfo($asset, PATHINFO_EXTENSION));
-
         return match (true) {
             in_array($ext, ['woff2', 'woff', 'ttf', 'otf'], true)
                 => '<link rel="preload" href="' . htmlspecialchars($url) . '" as="font" type="font/' . $ext . '" crossorigin>',
@@ -137,6 +138,6 @@ final class Preload
 
     private function url(string $file): string
     {
-        return $this->structure->getBuildUrlPath() . '/' . ltrim($file, '/');
+        return $this->buildUrlPath . '/' . ltrim($file, '/');
     }
 }
