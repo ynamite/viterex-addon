@@ -2,6 +2,8 @@
 
 ViteRex ist ein eigenständiges Redaxo-Addon, das ein modernes Vite-Frontend (Tailwind 4, Live-Reload, Hot-Module-Replacement) in **jede** Redaxo-Installation einbringt — `classic`, `modern` (ydeploy) oder mit `theme`-Addon. Pfade konfigurierst du im Backend; auf Knopfdruck scaffolded das Addon `package.json`, `vite.config.js`, Dev-Tooling-Defaults, Beispiel-Entries und merged `.gitignore`-Einträge in dein Projekt-Root.
 
+<img width="1672" height="941" alt="Viterex Addon" src="https://github.com/user-attachments/assets/371153d5-31e9-4670-8dbe-30034e0d9dcb" />
+
 > **Vorgängerversion 1.x**: siehe [Migration](##migration-from-v1x). v3 ist eine breaking release.
 
 ---
