@@ -11,7 +11,6 @@
 use Ynamite\ViteRex\Badge;
 use Ynamite\ViteRex\OutputFilter;
 use Ynamite\ViteRex\Server;
-use Ynamite\ViteRex\Structure;
 
 if ('' !== (string) rex_request::request('viterex_clear_cache', 'string', '')) {
     if (rex_backend_login::hasSession() && rex_csrf_token::factory('viterex_badge')->isValid()) {
@@ -23,10 +22,6 @@ if ('' !== (string) rex_request::request('viterex_clear_cache', 'string', '')) {
         echo json_encode(['ok' => false, 'error' => 'forbidden']);
     }
     exit;
-}
-
-if (rex_addon::get('developer')->isAvailable() && Structure::detect()->getName() === 'modern') {
-    rex_developer_manager::setBasePath(rex_path::src());
 }
 
 /** @var rex_addon_interface $addon */
