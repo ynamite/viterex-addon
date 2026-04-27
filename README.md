@@ -2,15 +2,13 @@
 
 ViteRex ist ein eigenständiges Redaxo-Addon, das ein modernes Vite-Frontend (Tailwind 4, Live-Reload, Hot-Module-Replacement) in **jede** Redaxo-Installation einbringt — `classic`, `modern` (ydeploy) oder mit `theme`-Addon. Pfade konfigurierst du im Backend; auf Knopfdruck scaffolded das Addon `package.json`, `vite.config.js`, Dev-Tooling-Defaults, Beispiel-Entries und merged `.gitignore`-Einträge in dein Projekt-Root.
 
-> **Vorgängerversion 2.x**: siehe [Migration](#migration-from-2x). v3 ist eine breaking release.
+> **Vorgängerversion 1.x**: siehe [Migration](##migration-from-v1x). v3 ist eine breaking release.
 
 ---
 
 ## Installation
 
-Wie jedes Redaxo-Addon — **nicht via Composer**.
-
-**Über den Redaxo Installer (empfohlen):** Backend → *AddOns → Installer*, `viterex` suchen, herunterladen, aktivieren.
+**Über den Redaxo Installer (empfohlen):** Backend → _AddOns → Installer_, `viterex` suchen, herunterladen, aktivieren.
 
 **Manuell von GitHub:** Repo nach `redaxo/src/addons/viterex/` (modern) bzw. `addons/viterex/` (classic) entpacken, im Backend installieren und aktivieren.
 
@@ -23,7 +21,7 @@ Beim Installieren passiert **nichts im Projekt-Root** — das Addon registriert 
 1. **Backend → AddOns → ViteRex → Settings** öffnen.
 2. Pfade reviewen / anpassen — Defaults sind modern (ydeploy)-tauglich (`src/assets/js/main.js`, `public/dist`, `/dist`). Für `classic`: `Public directory` leer lassen, `Build output directory` auf `dist`. Für `theme`: `theme/public` und `theme/public/dist`.
 3. Form speichern (synchronisiert `structure.json`).
-4. Auf den Button **Install stubs** klicken. Das Häkchen *Overwrite existing files* steuert, was mit bereits vorhandenen Dateien passiert — **mit Häkchen** wird vorher ein zeitstempel-Backup angelegt (`<datei>.bak.YYYYmmdd-HHiiss`), niemals stillschweigend überschrieben. Gescaffolded werden:
+4. Auf den Button **Install stubs** klicken. Das Häkchen _Overwrite existing files_ steuert, was mit bereits vorhandenen Dateien passiert — **mit Häkchen** wird vorher ein zeitstempel-Backup angelegt (`<datei>.bak.YYYYmmdd-HHiiss`), niemals stillschweigend überschrieben. Gescaffolded werden:
    - `package.json` (Vite 8 + Tailwind 4 + Plugins + Dev-Tooling)
    - `vite.config.js` (minimal, Laravel-style — der Import-Pfad zu `viterex-vite-plugin.js` wird aus deiner `Public directory`-Einstellung generiert)
    - `.env.example`, `.browserslistrc`, `.prettierrc`, `biome.jsonc`, `stylelint.config.js`, `jsconfig.json`
@@ -52,11 +50,11 @@ In beliebigen Redaxo-Templates:
 
 Formen:
 
-| Form | Verhalten |
-|---|---|
-| `REX_VITE` | Default-Entries (CSS + JS) aus den CRUD-Settings. |
-| `REX_VITE[src="src/assets/js/main.js"]` | Einzelner expliziter Entry. |
-| `REX_VITE[src="src/assets/css/style.css\|src/assets/js/main.js"]` | Mehrere Entries, pipe-separiert. |
+| Form                                                              | Verhalten                                         |
+| ----------------------------------------------------------------- | ------------------------------------------------- |
+| `REX_VITE`                                                        | Default-Entries (CSS + JS) aus den CRUD-Settings. |
+| `REX_VITE[src="src/assets/js/main.js"]`                           | Einzelner expliziter Entry.                       |
+| `REX_VITE[src="src/assets/css/style.css\|src/assets/js/main.js"]` | Mehrere Entries, pipe-separiert.                  |
 
 Pro Vorkommen werden in dieser Reihenfolge ausgegeben:
 
@@ -101,24 +99,24 @@ Assets, die per JS oder CSS importiert werden (`import "../img/foo.png?url"` ode
 
 ## Settings-Felder (CRUD)
 
-| Feld | Default | Zweck |
-|---|---|---|
-| **JS entry** | `src/assets/js/main.js` | Vite JS-Entry-Pfad |
-| **CSS entry** | `src/assets/css/style.css` | Vite CSS-Entry-Pfad |
-| **Public directory** | `public` | Web-served Verzeichnis. Modern: `public`. Classic: leer. Theme: `theme/public`. |
-| **Build output directory** | `public/dist` | Vite `outDir` |
-| **Build URL prefix** | `/dist` | URL-Prefix für gebaute Assets |
-| **Assets source directory** | `src/assets` | Wo deine Source-Assets liegen |
-| **Assets sub-directory** | `assets` | Vite `build.assetsDir` |
-| **Static copy directories** | `img` | Komma-separierte Liste — kopiert beim Build von `<assets_source_dir>/<dir>/` nach `<out_dir>/<assets_sub_dir>/<dir>` |
-| **Enable HTTPS dev server** | off | Aktiviert HTTPS, wenn mkcert-Certs am Projekt-Root liegen |
-| **Live-reload globs** | siehe nächster Abschnitt | Ein Glob pro Zeile — Vite triggert Full-Reload bei Änderung passender Files |
+| Feld                        | Default                    | Zweck                                                                                                                |
+| --------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **JS entry**                | `src/assets/js/main.js`    | Vite JS-Entry-Pfad                                                                                                   |
+| **CSS entry**               | `src/assets/css/style.css` | Vite CSS-Entry-Pfad                                                                                                  |
+| **Public directory**        | `public`                   | Web-served Verzeichnis. Modern: `public`. Classic: leer. Theme: `theme/public`.                                      |
+| **Build output directory**  | `public/dist`              | Vite `outDir`                                                                                                        |
+| **Build URL prefix**        | `/dist`                    | URL-Prefix für gebaute Assets                                                                                        |
+| **Assets source directory** | `src/assets`               | Wo deine Source-Assets liegen                                                                                        |
+| **Assets sub-directory**    | `assets`                   | Vite `build.assetsDir`                                                                                               |
+| **Static copy directories** | `img`                      | Komma-separierte Liste — kopiert beim Build von `<assets_source_dir>/<dir>/` nach `<out_dir>/<assets_sub_dir>/<dir>` |
+| **Enable HTTPS dev server** | off                        | Aktiviert HTTPS, wenn mkcert-Certs am Projekt-Root liegen                                                            |
+| **Live-reload globs**       | siehe nächster Abschnitt   | Ein Glob pro Zeile — Vite triggert Full-Reload bei Änderung passender Files                                          |
 
 ---
 
 ## Live-Reload
 
-Vite's Browser-Reload wird über `vite-plugin-live-reload` ausgelöst. Default-Globs (Settings → *Live-reload globs*):
+Vite's Browser-Reload wird über `vite-plugin-live-reload` ausgelöst. Default-Globs (Settings → _Live-reload globs_):
 
 ```
 src/modules/**/*.php
@@ -139,7 +137,7 @@ Wichtig: dieses Signal feuert **nur bei tatsächlichen Admin-Save-Aktionen**, ni
 
 ## HTTPS Dev-Server
 
-`npm run setup-https` erzeugt mit [mkcert](https://github.com/FiloSottile/mkcert) lokale Zertifikate (`localhost+2-key.pem`, `localhost+2.pem`) am Projekt-Root. Dann in den Settings *Enable HTTPS dev server* aktivieren — Vite startet beim nächsten `npm run dev` über HTTPS, das Hot-File enthält `https://...`.
+`npm run setup-https` erzeugt mit [mkcert](https://github.com/FiloSottile/mkcert) lokale Zertifikate (`localhost+2-key.pem`, `localhost+2.pem`) am Projekt-Root. Dann in den Settings _Enable HTTPS dev server_ aktivieren — Vite startet beim nächsten `npm run dev` über HTTPS, das Hot-File enthält `https://...`.
 
 mkcert installiert beim ersten Start eine lokale Root-CA in deinen System-Trust-Store (eine einmalige Sicherheitsabfrage). Auf macOS via Homebrew bzw. in Chrome/Firefox automatisch erkannt.
 
@@ -157,32 +155,32 @@ export default defineConfig({
     tailwindcss(),
     fixTailwindFullReload(),
     viterex({
-      input: ["src/admin/main.js"],            // zusätzliche Entries (mergeConfig konkateniert)
-      refresh: ["src/templates/**/*.php"],     // engere Live-Reload-Globs
-    }),
+      input: ['src/admin/main.js'], // zusätzliche Entries (mergeConfig konkateniert)
+      refresh: ['src/templates/**/*.php'] // engere Live-Reload-Globs
+    })
   ],
-  build: { sourcemap: true },                  // alles hier überschreibt viterex's Defaults
-});
+  build: { sourcemap: true } // alles hier überschreibt viterex's Defaults
+})
 ```
 
 **Escape Hatch** — komplette Vite-Config selbst schreiben:
 
 ```js
-viterex({ injectConfig: false })   // nur Hot-File bleibt; alles andere musst du selbst setzen
+viterex({ injectConfig: false }) // nur Hot-File bleibt; alles andere musst du selbst setzen
 ```
 
 **Downstream-Addons** (z. B. `redaxo-massif`): legen ihren eigenen Helper unter `viterex-addon/assets/<name>-vite-plugin.js` an, der `viterex()` umschliesst:
 
 ```js
 // redaxo-massif/assets/massif-vite-plugin.js
-import vue from "@vitejs/plugin-vue";
-import viterex from "../viterex/viterex-vite-plugin.js";
+import vue from '@vitejs/plugin-vue'
+import viterex from '../viterex/viterex-vite-plugin.js'
 
 export default function massif(userOptions = {}) {
   return [
-    ...viterex({ refresh: false, ...userOptions }),  // viterex zuerst
-    vue(),
-  ];
+    ...viterex({ refresh: false, ...userOptions }), // viterex zuerst
+    vue()
+  ]
 }
 ```
 
@@ -192,9 +190,9 @@ User wechselt dann in seiner `vite.config.js` einfach den Import + Plugin-Aufruf
 
 ## Erweiterungspunkte (PHP)
 
-| Name | Subject | Verwendung |
-|---|---|---|
-| `VITEREX_BADGE` | `array` von HTML-Strings | Zusätzliche Panels im ViteRex-Badge rendern (z. B. Tailwind-Breakpoint-Indikator). |
+| Name              | Subject                      | Verwendung                                                                          |
+| ----------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
+| `VITEREX_BADGE`   | `array` von HTML-Strings     | Zusätzliche Panels im ViteRex-Badge rendern (z. B. Tailwind-Breakpoint-Indikator).  |
 | `VITEREX_PRELOAD` | `array` von `<link>`-Strings | Custom Preload-Links einfügen (z. B. Webfonts im Dev). Parameter: `entries`, `dev`. |
 
 ---
@@ -219,7 +217,7 @@ Die Integration ist konditional — sie aktiviert sich nur, wenn `block_peek` al
 
 ---
 
-## Migration from 2.x
+## <a id="migration-from-v1x"></a> Migration from 1.x
 
 - **`Assets::get()` entfernt.** Templates, die `<?= $assets['js'] ?>` / `$assets['css']` / `$assets['preload']` nutzten, auf `REX_VITE[src="..."]` umstellen — oder `REX_VITE` ganz weglassen und Auto-Insert nutzen.
 - **`Server::getAssetsUrl/getImg/...` entfernt.** Stattdessen `Assets::url('img/foo.png')`, `Assets::path()`, `Assets::inline()`.
@@ -256,7 +254,7 @@ End-to-end-Checkliste:
 7. **Assets::url/path/inline:** `<?= Assets::url('img/logo.png') ?>` → dev-server-URL in dev, `/dist/assets/img/logo.png` in prod.
 8. **Classic:** Settings → `Public directory` leer, `Build output directory` `dist`. Install stubs (overwrite) → vite.config.js-Import-Pfad wird `./assets/addons/viterex/viterex-vite-plugin.js`. Build outputs nach `<base>/dist/`.
 9. **Theme:** Settings → `Public directory` `theme/public`, `Build output directory` `theme/public/dist`. Install stubs.
-10. **HTTPS:** `npm run setup-https` → Certs erzeugt. Settings → *Enable HTTPS* aktivieren → save → reload Vite. Hot-File enthält `https://`.
+10. **HTTPS:** `npm run setup-https` → Certs erzeugt. Settings → _Enable HTTPS_ aktivieren → save → reload Vite. Hot-File enthält `https://`.
 11. **Badge:** Frontend + Backend sichtbar, Stage korrekt, Vite-Running flippt beim Start/Stopp, Clear-Cache funktioniert, `VITEREX_BADGE`-Extension-Point lädt Extra-Panels.
 12. **Keine Regressionen:** `YREWRITE_SEO_TAGS`-noindex bei Nicht-Prod aktiv. Backend-Bail im OUTPUT_FILTER funktioniert.
 
@@ -272,7 +270,7 @@ End-to-end-Checkliste:
 
 ## Issues / Kontakt
 
-Bug-Reports & Features auf [GitHub](https://github.com/ynamite/viterex-addon/issues). Änderungen im [CHANGELOG.md](CHANGELOG.md).
+Bug-Reports & Features auf [GitHub](https://github.com/ynamite/viterex_addon/issues). Änderungen im [CHANGELOG.md](CHANGELOG.md).
 
 ## Lizenz
 
