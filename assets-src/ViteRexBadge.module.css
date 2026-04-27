@@ -126,9 +126,18 @@
 .dot {
 	display: block;
 	border-radius: 50%;
-	background-color: var(--color);
 	width: 0.5rem;
 	height: 0.5rem;
+	cursor: help;
+}
+
+.dotOn {
+	background-color: var(--color);
+	box-shadow: 0 0 4px var(--color);
+}
+
+.dotOff {
+	background-color: rgba(255, 255, 255, 0.25);
 }
 
 .branch {
@@ -145,28 +154,6 @@
 	letter-spacing: 0.05em;
 	text-align: center;
 	text-shadow: 0 -1px 1px color-mix(in srgb, var(--color), rgba(255, 236, 193) 18%);
-	text-transform: uppercase;
-}
-
-.viteUrl {
-	border: none;
-	background: transparent;
-	padding: 0.4rem 0.6rem;
-	color: var(--color);
-	font-size: 0.65rem;
-	font-family: inherit;
-	letter-spacing: 0.05em;
-	cursor: pointer;
-	&:hover {
-		text-decoration: underline;
-	}
-}
-
-.viteOff {
-	padding: 0.4rem 0.6rem;
-	color: rgba(255, 255, 255, 0.5);
-	font-size: 0.65rem;
-	letter-spacing: 0.05em;
 	text-transform: uppercase;
 }
 

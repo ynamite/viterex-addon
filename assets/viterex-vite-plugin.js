@@ -28,6 +28,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import browserslist from "browserslist";
 import { browserslistToTargets } from "lightningcss";
 import liveReload from "vite-plugin-live-reload";
@@ -37,6 +38,9 @@ const STRUCTURE_PATH_CANDIDATES = [
 	"var/data/addons/viterex/structure.json", // modern (ydeploy)
 	"redaxo/data/addons/viterex/structure.json", // classic, theme
 ];
+
+const PLUGIN_DIR = path.dirname(fileURLToPath(import.meta.url));
+const DEV_INDEX_HTML_PATH = path.join(PLUGIN_DIR, "dev-server-index.html");
 
 let exitHandlersBound = false;
 
@@ -105,6 +109,44 @@ function hotFilePlugin(hotFilePath) {
 }
 
 /**
+ * Vite middleware that serves a friendly landing page at "/" and "/index.html"
+ * on the dev-server URL — instead of letting curious developers hit a blank
+ * page when they accidentally navigate to the Vite host. The page tells them
+ * the dev server is running and links back to the project's actual host_url.
+ */
+function devIndexPlugin(hostUrl) {
+	return {
+		name: "viterex:dev-index",
+		apply: "serve",
+		configureServer(server) {
+			return () => {
+				server.middlewares.use((req, res, next) => {
+					const url = (req.url ?? "").split("?")[0];
+					if (url !== "/" && url !== "/index.html") {
+						next();
+						return;
+					}
+					if (!fs.existsSync(DEV_INDEX_HTML_PATH)) {
+						next();
+						return;
+					}
+					try {
+						const tpl = fs.readFileSync(DEV_INDEX_HTML_PATH, "utf8");
+						const safeHost = (hostUrl || "/").replace(/[<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
+						res.statusCode = 200;
+						res.setHeader("Content-Type", "text/html; charset=utf-8");
+						res.end(tpl.replace(/\{\{HOST_URL\}\}/g, safeHost));
+					} catch (e) {
+						console.warn(`[viterex] dev-index render failed: ${e.message}`);
+						next();
+					}
+				});
+			};
+		},
+	};
+}
+
+/**
  * Main plugin entry. Returns an array of Vite plugins.
  *
  * @param {object} [options]
@@ -141,7 +183,7 @@ export default function viterex(options = {}) {
 
 	const https = detectTls && structure.https_enabled === true ? detectTlsCerts(cwd) : null;
 
-	const plugins = [hotFilePlugin(hotFileFs)];
+	const plugins = [hotFilePlugin(hotFileFs), devIndexPlugin(structure.host_url)];
 
 	if (injectConfig) {
 		const buildUrlPath = "/" + (structure.build_url_path || "/dist").replace(/^\/+|\/+$/g, "");

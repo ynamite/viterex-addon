@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>ViteRex dev server</title>
+	<style>
+		:root { color-scheme: dark; }
+		* { box-sizing: border-box; margin: 0; padding: 0; }
+		html, body { height: 100%; }
+		body {
+			min-height: 100dvh;
+			display: grid;
+			place-items: center;
+			background: radial-gradient(ellipse at center, #1a1a1a 0%, #0a0a0a 100%);
+			color: #f5f5f5;
+			font: 16px/1.5 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+			padding: 2rem;
+			overflow: hidden;
+		}
+		body::before {
+			content: "";
+			position: fixed;
+			inset: 0;
+			background:
+				radial-gradient(circle at 20% 30%, rgba(75, 221, 79, 0.08) 0%, transparent 50%),
+				radial-gradient(circle at 80% 70%, rgba(255, 38, 158, 0.08) 0%, transparent 50%);
+			pointer-events: none;
+			z-index: 0;
+		}
+		main {
+			max-width: 38rem;
+			text-align: center;
+			position: relative;
+			z-index: 1;
+		}
+		.tag {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.45rem 0.95rem;
+			border-radius: 999px;
+			background: rgba(75, 221, 79, 0.08);
+			border: 1px solid rgba(75, 221, 79, 0.3);
+			font-size: 0.75rem;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+			color: #4bdd4f;
+			margin-bottom: 1.75rem;
+		}
+		.pulse {
+			width: 0.55rem;
+			height: 0.55rem;
+			border-radius: 50%;
+			background: #4bdd4f;
+			box-shadow: 0 0 0 0 rgba(75, 221, 79, 0.7);
+			animation: pulse 1.8s infinite;
+		}
+		@keyframes pulse {
+			0% { box-shadow: 0 0 0 0 rgba(75, 221, 79, 0.55); }
+			70% { box-shadow: 0 0 0 14px rgba(75, 221, 79, 0); }
+			100% { box-shadow: 0 0 0 0 rgba(75, 221, 79, 0); }
+		}
+		h1 {
+			font-size: clamp(2rem, 5vw, 2.75rem);
+			font-weight: 600;
+			letter-spacing: -0.02em;
+			margin-bottom: 0.85rem;
+			background: linear-gradient(135deg, #4bdd4f, #ff269e);
+			-webkit-background-clip: text;
+			background-clip: text;
+			color: transparent;
+		}
+		p {
+			color: rgba(245, 245, 245, 0.65);
+			margin-bottom: 2.25rem;
+			font-size: 1.05rem;
+		}
+		a.site {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.95rem 1.6rem;
+			border-radius: 999px;
+			background: linear-gradient(135deg, rgba(75, 221, 79, 0.12), rgba(255, 38, 158, 0.12));
+			border: 1px solid rgba(245, 245, 245, 0.18);
+			color: #f5f5f5;
+			font-weight: 500;
+			text-decoration: none;
+			font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
+			font-size: 0.95rem;
+			transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+		}
+		a.site:hover {
+			transform: translateY(-2px);
+			border-color: rgba(75, 221, 79, 0.5);
+			background: linear-gradient(135deg, rgba(75, 221, 79, 0.18), rgba(255, 38, 158, 0.18));
+		}
+		a.site::after {
+			content: "↗";
+			font-family: system-ui, sans-serif;
+			opacity: 0.6;
+		}
+		footer {
+			margin-top: 3.5rem;
+			font-size: 0.7rem;
+			color: rgba(245, 245, 245, 0.35);
+			letter-spacing: 0.12em;
+			text-transform: uppercase;
+		}
+		footer strong {
+			color: rgba(245, 245, 245, 0.55);
+			font-weight: 500;
+		}
+	</style>
+</head>
+<body>
+	<main>
+		<span class="tag"><span class="pulse"></span>Vite is running</span>
+		<h1>ViteRex dev server</h1>
+		<p>This URL serves modules and HMR — not your site. Your project is at:</p>
+		<a class="site" href="{{HOST_URL}}">{{HOST_URL}}</a>
+		<footer>Powered by <strong>ViteRex</strong> Vite plugin</footer>
+	</main>
+</body>
+</html>
