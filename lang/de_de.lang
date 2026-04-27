@@ -43,3 +43,4 @@ viterex_install_stubs_intro = Kopiert die Projekt-Root-Dateien (package.json, vi
 viterex_install_overwrite = Existierende Dateien überschreiben
 viterex_install_stubs_button = Stubs installieren
 viterex_skipped_intro = Diese Dateien existieren bereits und wurden nicht überschrieben (Checkbox aktivieren zum Überschreiben):
+viterex_backed_up_intro = Diese Dateien existierten bereits und wurden vor dem Überschreiben gesichert:

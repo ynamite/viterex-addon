@@ -13,28 +13,41 @@ use rex_path;
 final class StubsInstaller
 {
     /**
-     * @return array{written: list<string>, skipped: list<string>, gitignoreAction: string}
+     * @return array{written: list<string>, skipped: list<string>, backedUp: list<string>, gitignoreAction: string}
      */
     public static function run(bool $overwrite = false): array
     {
         $written = [];
         $skipped = [];
+        $backedUp = [];
         foreach (self::resolveStubs() as $source => $relTarget) {
             $sourcePath = self::stubsDir() . '/' . $source;
             if (!is_file($sourcePath)) {
                 continue;
             }
             $target = rex_path::base(ltrim($relTarget, '/'));
-            if (file_exists($target) && !$overwrite) {
-                $skipped[] = $relTarget;
-                continue;
+            if (file_exists($target)) {
+                if (!$overwrite) {
+                    $skipped[] = $relTarget;
+                    continue;
+                }
+                // Backup-on-overwrite: never blow away existing files (especially main.js / style.css)
+                // without a recoverable copy. Timestamped sibling, idempotent across re-runs.
+                $backupPath = $target . '.bak.' . date('Ymd-His');
+                rex_file::copy($target, $backupPath);
+                $backedUp[] = $relTarget . ' → ' . basename($backupPath);
             }
             rex_dir::create(dirname($target));
             rex_file::put($target, self::transform($source, $sourcePath));
             $written[] = $relTarget;
         }
         $gitignoreAction = self::mergeGitignore();
-        return ['written' => $written, 'skipped' => $skipped, 'gitignoreAction' => $gitignoreAction];
+        return [
+            'written'         => $written,
+            'skipped'         => $skipped,
+            'backedUp'        => $backedUp,
+            'gitignoreAction' => $gitignoreAction,
+        ];
     }
 
     private static function stubsDir(): string

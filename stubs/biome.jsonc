@@ -35,5 +35,17 @@
 			"semicolons": "always",
 			"trailingCommas": "all"
 		}
+	},
+	"css": {
+		"parser": {
+			"cssModules": true
+		},
+		"linter": {
+			"rules": {
+				"correctness": {
+					"noUnknownAtRule": "off"
+				}
+			}
+		}
 	}
 }

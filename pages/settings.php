@@ -19,12 +19,23 @@ if (rex_post('viterex_install_stubs', 'boolean')) {
         $result = StubsInstaller::run($overwrite);
 
         $message = sprintf(
-            '<strong>%d</strong> file(s) written, <strong>%d</strong> skipped. <code>.gitignore</code>: %s.',
+            '<strong>%d</strong> file(s) written, <strong>%d</strong> skipped, <strong>%d</strong> backed up. <code>.gitignore</code>: %s.',
             count($result['written']),
             count($result['skipped']),
+            count($result['backedUp']),
             rex_escape($result['gitignoreAction']),
         );
         echo rex_view::success($message);
+
+        if (!empty($result['backedUp'])) {
+            $items = implode('', array_map(
+                static fn(string $rel): string => '<li><code>' . rex_escape($rel) . '</code></li>',
+                $result['backedUp'],
+            ));
+            echo rex_view::info(
+                rex_i18n::msg('viterex_backed_up_intro') . '<ul>' . $items . '</ul>',
+            );
+        }
 
         if (!empty($result['skipped'])) {
             $items = implode('', array_map(
