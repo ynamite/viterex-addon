@@ -5,12 +5,19 @@ on:
     types:
       - published
 
+# Required so softprops/action-gh-release can upload the zip back to the
+# release that triggered this workflow. Without this, the default
+# GITHUB_TOKEN runs as a read-only "integration" and the upload fails
+# with `Resource not accessible by integration`.
+permissions:
+  contents: write
+
 jobs:
   build-release-and-redaxo-publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -22,7 +29,7 @@ jobs:
         run: composer install --no-dev --optimize-autoloader --no-interaction
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "20"
 
@@ -56,7 +63,7 @@ jobs:
             -x "docker-compose*"
 
       - name: Upload release asset
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: viterex-addon.zip
           name: viterex-addon-${{ github.event.release.tag_name }}.zip
