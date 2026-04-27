@@ -186,7 +186,7 @@ export default function viterex(options = {}) {
 	const plugins = [hotFilePlugin(hotFileFs), devIndexPlugin(structure.host_url)];
 
 	if (injectConfig) {
-		const buildUrlPath = "/" + (structure.build_url_path || "/dist").replace(/^\/+|\/+$/g, "");
+		const buildUrlPath = `/${(structure.build_url_path || "/dist").replace(/^\/+|\/+$/g, "")}`;
 
 		plugins.push({
 			name: "viterex",
@@ -206,7 +206,6 @@ export default function viterex(options = {}) {
 						emptyOutDir: userConfig.build?.emptyOutDir ?? true,
 						manifest: userConfig.build?.manifest ?? true,
 						cssMinify: userConfig.build?.cssMinify ?? "lightningcss",
-						checks: { pluginTimings: false },
 						rollupOptions: {
 							input: userConfig.build?.rollupOptions?.input ?? resolvedInputs,
 						},
@@ -230,7 +229,7 @@ export default function viterex(options = {}) {
 	}
 
 	if (refreshGlobs && refreshGlobs.length > 0) {
-		plugins.push(liveReload(refreshGlobs, { alwaysReload: true }));
+		plugins.push(liveReload(refreshGlobs));
 	}
 
 	return plugins;

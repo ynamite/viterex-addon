@@ -6,7 +6,13 @@
 	"semi": true,
 	"bracketSameLine": true,
 	"endOfLine": "lf",
-	"plugins": ["prettier-plugin-organize-attributes"],
+	"trailingComma": "none",
+	"plugins": [
+		"prettier-plugin-style-order",
+		"prettier-plugin-css-order",
+		"prettier-plugin-organize-attributes",
+		"prettier-plugin-tailwindcss"
+	],
 	"overrides": [
 		{
 			"files": "*.{html,php}",
