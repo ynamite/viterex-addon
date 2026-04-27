@@ -97,11 +97,6 @@ $field->setAttribute('rows', 8);
 $field->setAttribute('class', 'form-control rex-code');
 $field->setNotice(rex_i18n::msg('viterex_field_refresh_globs_notice'));
 
-// Sync structure.json after the form saves
-$form->addPostSaveCallback(static function (): void {
-    Config::syncStructureJson();
-});
-
 $content = '';
 $content .= $form->getMessage();
 $content .= $form->get();
@@ -135,3 +130,8 @@ $fragment->setVar('class', 'info', false);
 $fragment->setVar('title', rex_i18n::msg('viterex_install_stubs_title'), false);
 $fragment->setVar('body', $installContent, false);
 echo $fragment->parse('core/page/section.php');
+
+// Keep structure.json in sync with rex_config. Idempotent; on page renders
+// where the form just saved, rex_config already holds the new values when
+// we reach this point, so the JSON cache stays current.
+Config::syncStructureJson();
