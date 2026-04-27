@@ -29,6 +29,9 @@ installer_ignore:
   - assets-src
   - scripts
   - .github
+  - .gitignore
+  - .prettierrc
+  - .stylelintrc.json
   - jsconfig.json
   - package.json
   - package-lock.json

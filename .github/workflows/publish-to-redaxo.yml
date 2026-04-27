@@ -46,6 +46,9 @@ jobs:
             -x "vite.config.js" \
             -x "jsconfig.json" \
             -x "postcss.config.js" \
+            -x ".prettierrc" \
+            -x ".stylelintrc.json" \
+            -x ".gitignore" \
             -x "*.log" \
             -x "*.DS_Store" \
             -x "*Thumbs.db" \
