@@ -1,136 +1,143 @@
 <?php
-/*
- *  Class with utility functions for loading scripts in templates
- */
 
 namespace Ynamite\ViteRex;
 
-use rex_finder;
+use rex_extension;
+use rex_extension_point;
 
-use function strtolower;
-
-class Preload
+final class Preload
 {
-  private static ?self $instance = null;
+    private static ?self $instance = null;
 
-  private string $buildPath;
-  private string $buildUrl;
-  private string $entryPoint;
-  private bool $isDev;
-  private array $manifest = [];
+    private array $manifest;
+    private string $buildUrlPath;
 
-  public function __construct()
-  {
-    $server = Server::factory();
-
-    $this->buildUrl = $server->getValue('buildUrl');
-    $this->buildPath = $server->getValue('buildPath');
-    $this->entryPoint = $server->getValue('entryPoint');
-    $this->manifest = $server->getValue('manifest');
-
-    $this->isDev = $server->isDevMode();
-  }
-
-  public static function factory(): self
-  {
-    if (self::$instance) {
-      return self::$instance;
+    public function __construct()
+    {
+        $this->manifest = Server::factory()->getManifestArray();
+        $this->buildUrlPath = '/' . trim(Config::get('build_url_path'), '/');
     }
 
-    return self::$instance = new self();
-  }
-
-
-  /**
-   * Get preload links for webfonts
-   * 
-   * @return string
-   */
-  public function getPreloadEntries(): string
-  {
-    $preloadArray = [];
-
-    if ($this->isDev) {
-      foreach (rex_finder::factory(Server::getAssetsPath() . 'fonts')->filesOnly()->sort() as $file) {
-        $preloadArray[] = '<link rel="preload" href="' . Server::getAssetsUrl() . 'fonts/' . $file->getFilename() . '" as="font" type="font/' . $file->getExtension() . '" crossorigin>';
-      }
-    } else {
-      $entryPoint = trim($this->entryPoint, '/');
-      $entry = $this->manifest[$entryPoint] ?? null;
-      if (!$entry) {
-        return '';
-      }
-
-      // preload other imports
-      $preloadArray = [...$preloadArray, ...$this->getPreloadEntry($entry)];
-      $preloadArray = [...$preloadArray, ...$this->getPreloadAssets($entry)];
+    public static function factory(): self
+    {
+        return self::$instance ??= new self();
     }
-    $preloadArray = array_unique($preloadArray);
-    return implode("\n", $preloadArray);
-  }
 
-  private function getPreloadEntry(array $entry, bool $nested = true): array
-  {
+    public static function renderForEntries(array $entries): string
+    {
+        return self::factory()->build($entries);
+    }
 
-    $preloadArray = [];
-    $preloadArray = [...$preloadArray, ...$this->getPreloadImport($entry)];
-    foreach (['imports', 'dynamicImports'] as $importType) {
-      if (isset($entry[$importType])) {
-        foreach ($entry[$importType] as $import) {
-          if (isset($this->manifest[$import])) {
-            $preloadArray = [...$preloadArray, ...$this->getPreloadImport($this->manifest[$import])];
-            $preloadArray = [...$preloadArray, ...$this->getPreloadAssets($this->manifest[$import])];
-            if ($nested) {
-              return $preloadArray = [...$preloadArray, ...$this->getPreloadEntry($this->manifest[$import], false)];
+    private function build(array $entries): string
+    {
+        $lines = [];
+
+        if (!Server::isDevMode()) {
+            foreach ($entries as $entry) {
+                $key = trim($entry, '/');
+                if ($key === '' || !isset($this->manifest[$key])) {
+                    continue;
+                }
+                $visited = [];
+                $lines = array_merge(
+                    $lines,
+                    $this->walkManifestEntry($this->manifest[$key], $visited),
+                );
             }
-          }
         }
-      }
-    }
-    return $preloadArray;
-  }
 
-  private function getPreloadImport(array $entry): array
-  {
-    $preloadArray = [];
-    $preloadArray[] = '<link rel="modulepreload" href="' . $this->buildUrl . '/' . $entry['file'] . '">';
-    // Preload CSS of dynamic imports as well
-    if (isset($entry['css'])) {
-      foreach ($entry['css'] as $cssFile) {
-        $preloadArray[] = '<link rel="preload" href="' . $this->buildUrl . '/' . $cssFile . '" as="style">';
-      }
+        $extra = rex_extension::registerPoint(
+            new rex_extension_point('VITEREX_PRELOAD', [], [
+                'entries' => $entries,
+                'dev'     => Server::isDevMode(),
+            ]),
+        );
+        if (is_array($extra)) {
+            foreach ($extra as $item) {
+                if (is_string($item) && $item !== '') {
+                    $lines[] = $item;
+                }
+            }
+        }
+
+        return implode("\n", array_values(array_unique($lines)));
     }
 
-    return $preloadArray;
-  }
+    private function walkManifestEntry(array $entry, array &$visited): array
+    {
+        $file = $entry['file'] ?? null;
+        if (!is_string($file) || isset($visited[$file])) {
+            return [];
+        }
+        $visited[$file] = true;
 
-  private function getPreloadAssets(array $entry): array
-  {
-    $preloadArray = [];
-    if (!isset($entry['assets'])) {
-      return $preloadArray;
+        // CSS-only entries: rendered via <link rel="stylesheet">; no preload needed.
+        if (strtolower(pathinfo($file, PATHINFO_EXTENSION)) === 'css') {
+            return [];
+        }
+
+        $lines = [$this->modulePreload($file)];
+
+        foreach (($entry['css'] ?? []) as $cssFile) {
+            if (is_string($cssFile)) {
+                $lines[] = $this->stylePreload($cssFile);
+            }
+        }
+
+        foreach (['imports', 'dynamicImports'] as $importType) {
+            foreach (($entry[$importType] ?? []) as $importKey) {
+                if (is_string($importKey) && isset($this->manifest[$importKey])) {
+                    $lines = array_merge(
+                        $lines,
+                        $this->walkManifestEntry($this->manifest[$importKey], $visited),
+                    );
+                }
+            }
+        }
+
+        foreach (($entry['assets'] ?? []) as $asset) {
+            if (is_string($asset)) {
+                $preload = $this->assetPreload($asset);
+                if ($preload !== null) {
+                    $lines[] = $preload;
+                }
+            }
+        }
+
+        return $lines;
     }
-    // Preload web fonts
-    foreach ($entry['assets'] as $asset) {
-      // check if is font woff2|woff|ttf|otf
-      $extension = pathinfo($asset, PATHINFO_EXTENSION);
-      if (in_array(strtolower($extension), ['woff2', 'woff', 'ttf', 'otf'])) {
-        $preloadArray[] = '<link rel="preload" href="' . $this->buildUrl . '/' . $asset . '" as="font" type="font/' . $extension . '" crossorigin>';
-      }
-      // other assets like images can be preloaded as well if needed
-      if (in_array(strtolower($extension), ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'avif'])) {
-        $preloadArray[] = '<link rel="preload" href="' . $this->buildUrl . '/' . $asset . '" as="image">';
-      }
-      if (in_array(strtolower($extension), ['mp4', 'webm', 'ogg'])) {
-        $preloadArray[] = '<link rel="preload" href="' . $this->buildUrl . '/' . $asset . '" as="video">';
-      }
-      if (in_array(strtolower($extension), ['mp3', 'wav', 'flac'])) {
-        $preloadArray[] = '<link rel="preload" href="' . $this->buildUrl . '/' . $asset . '" as="audio">';
-      }
-      if (strtolower($extension) === 'js') {
-        $preloadArray[] = '<link rel="modulepreload" href="' . $this->buildUrl . '/' . $asset . '">';
-      }
+
+    private function modulePreload(string $file): string
+    {
+        return '<link rel="modulepreload" href="' . htmlspecialchars($this->url($file)) . '">';
     }
-    return $preloadArray;
-  }
+
+    private function stylePreload(string $file): string
+    {
+        return '<link rel="preload" href="' . htmlspecialchars($this->url($file)) . '" as="style">';
+    }
+
+    private function assetPreload(string $asset): ?string
+    {
+        $url = $this->url($asset);
+        $ext = strtolower(pathinfo($asset, PATHINFO_EXTENSION));
+        return match (true) {
+            in_array($ext, ['woff2', 'woff', 'ttf', 'otf'], true)
+                => '<link rel="preload" href="' . htmlspecialchars($url) . '" as="font" type="font/' . $ext . '" crossorigin>',
+            in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'avif'], true)
+                => '<link rel="preload" href="' . htmlspecialchars($url) . '" as="image">',
+            in_array($ext, ['mp4', 'webm', 'ogg'], true)
+                => '<link rel="preload" href="' . htmlspecialchars($url) . '" as="video">',
+            in_array($ext, ['mp3', 'wav', 'flac'], true)
+                => '<link rel="preload" href="' . htmlspecialchars($url) . '" as="audio">',
+            $ext === 'js'
+                => '<link rel="modulepreload" href="' . htmlspecialchars($url) . '">',
+            default => null,
+        };
+    }
+
+    private function url(string $file): string
+    {
+        return $this->buildUrlPath . '/' . ltrim($file, '/');
+    }
 }

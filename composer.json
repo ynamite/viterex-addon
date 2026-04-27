@@ -1,13 +1,12 @@
 {
   "name": "ynamite/viterex",
   "require": {
-    "php": ">=8.1",
-    "vlucas/phpdotenv": "^5.6"
+    "php": ">=8.1"
   },
   "autoload": {
-    "classmap": [
-      "lib/"
-    ]
+    "psr-4": {
+      "Ynamite\\ViteRex\\": "lib/"
+    }
   },
   "config": {
     "optimize-autoloader": true,

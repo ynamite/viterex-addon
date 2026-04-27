@@ -1,0 +1,68 @@
+name: Publish release
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  build-release-and-redaxo-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: composer
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build badge assets
+        run: npm run build
+
+      - name: Create release archive
+        run: |
+          zip -r viterex.zip . \
+            -x "viterex.zip" \
+            -x "node_modules/*" \
+            -x ".git/*" \
+            -x ".github/*" \
+            -x "assets-src/*" \
+            -x "scripts/*" \
+            -x "package.json" \
+            -x "package-lock.json" \
+            -x "vite.config.js" \
+            -x "jsconfig.json" \
+            -x "postcss.config.js" \
+            -x ".prettierrc" \
+            -x ".stylelintrc.json" \
+            -x ".gitignore" \
+            -x "*.log" \
+            -x "*.DS_Store" \
+            -x "*Thumbs.db" \
+            -x ".editorconfig" \
+            -x "docker-compose*"
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: viterex-addon.zip
+          name: viterex-addon-${{ github.event.release.tag_name }}.zip
+
+      - uses: FriendsOfREDAXO/installer-action@v1
+        with:
+          myredaxo-username: ${{ secrets.MYREDAXO_USERNAME }}
+          myredaxo-api-key: ${{ secrets.MYREDAXO_API_KEY }}
+          description: ${{ github.event.release.body }}

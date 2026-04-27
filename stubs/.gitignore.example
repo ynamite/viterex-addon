@@ -1,0 +1,37 @@
+# Added by viterex
+node_modules/
+vendor/
+.tools/
+*.local
+.env
+.env.local
+.env.*.local
+.vite-hot
+.vite-reload-trigger
+*.pem
+*.key
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+.yarn/
+.yarnrc.yml
+.npmrc
+
+# Build output (adjust if your `out_dir` setting differs)
+public/dist/
+public/.vite/
+
+# Redaxo cache + data + logs (modern/ydeploy paths)
+var/cache/*
+!var/cache/.*
+var/data/addons/*/*
+!var/data/addons/mblock/*
+!var/data/addons/mform/*
+!var/data/addons/ydeploy/*
+var/data/core/config.yml
+var/log/*
+public/media/*
+!public/media/.redaxo

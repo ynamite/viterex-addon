@@ -1,0 +1,14 @@
+var e={dev:`_dev_644wy_7`,staging:`_staging_644wy_10`,prod:`_prod_644wy_13`,wrapper:`_wrapper_644wy_17`,expanded:`_expanded_644wy_38`,badge:`_badge_644wy_40`,label:`_label_644wy_91`,version:`_version_644wy_98`,infoWrapper:`_infoWrapper_644wy_102`,dot:`_dot_644wy_130`,dotOn:`_dotOn_644wy_138`,dotOff:`_dotOff_644wy_143`,branch:`_branch_644wy_147`,clearCache:`_clearCache_644wy_165`,extras:`_extras_644wy_186`,branchAlert:`_branchAlert_644wy_212`,alertBlink:`_alertBlink_644wy_1`},t=document.getElementById(`viterex-badge-script`);if(!t)console.warn(`ViteRexBadge: No script tag with ID "viterex-badge-script" found.`);else{let n=t.getAttribute(`data-version`)||`unknown`,r=t.getAttribute(`data-rex-version`)||`unknown`,i=t.getAttribute(`data-git-branch`)||`n/a`,a=t.getAttribute(`data-stage`)||`dev`,o=t.getAttribute(`data-vite-running`)===`true`,s=t.getAttribute(`data-vite-url`)||``,c=t.getAttribute(`data-csrf-token`)||``;console.log(`ViteRex v${n} | stage: ${a} | vite: ${o?s:`off`}`);let l=e[a]||e.dev,u=i!==`unknown`&&i!==`n/a`,d=u&&i!==`main`&&i!==`master`,f=document.getElementById(`viterex-badge-extras`),p=f?f.innerHTML:``,m=o?`Vite @ ${s}`:`Vite is not running`,h=u?`<span class="${e.branch}">${i}</span>`:``,g=document.createElement(`div`);g.id=`viterex-badge`,g.className=[e.wrapper,l,d?e.branchAlert:``].filter(Boolean).join(` `),g.title=`ViteRex • ${a} • vite ${o?`running`:`off`}`,g.innerHTML=`
+		<div class="${e.badge}">
+			<div class="${e.label}"><span><b>R</b></span><span class="${e.version}">${r}</span></div>
+			<div class="${e.label}"><span><b>Vite</b>Rex</span><span class="${e.version}">${n}</span></div>
+			<div class="${e.infoWrapper}">
+				<span class="${e.label}">${a}</span>
+				<span class="${e.dot} ${o?e.dotOn:e.dotOff}" title="${m}"></span>
+				${h}
+			</div>
+			<button type="button" class="${e.clearCache}" title="Clear Redaxo cache">clear cache</button>
+		</div>
+		${p?`<div class="${e.extras}">${p}</div>`:``}
+	`,document.body.appendChild(g);let _=g.querySelector(`.${e.clearCache}`);_&&_.addEventListener(`click`,async e=>{e.stopPropagation();let t=_.textContent;_.disabled=!0,_.textContent=`…`;try{let e=new FormData;e.set(`viterex_clear_cache`,`1`),e.set(`_csrf_token`,c),_.textContent=(await(await fetch(window.location.pathname,{method:`POST`,body:e,credentials:`same-origin`})).json().catch(()=>({ok:!1}))).ok?`✓ cleared`:`✗ failed`}catch(e){console.warn(`ViteRexBadge: clear cache failed`,e),_.textContent=`✗ error`}setTimeout(()=>{_.textContent=t,_.disabled=!1},1500)}),g.addEventListener(`click`,t=>{t.target.closest(`button`)||g.classList.toggle(e.expanded)})}
+//# sourceMappingURL=viterex-badge.js.map

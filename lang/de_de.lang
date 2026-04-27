@@ -1,0 +1,46 @@
+viterex_title = ViteRex
+viterex_settings = Einstellungen
+viterex_docs = Dokumentation
+viterex_no_permission = Du hast keine Berechtigung, die ViteRex-Einstellungen zu öffnen.
+
+viterex_section_entries = Entry Points
+viterex_section_paths = Pfade
+viterex_section_dev = Dev-Server & Tooling
+
+viterex_field_js_entry = JS-Entry
+viterex_field_js_entry_notice = Pfad zur JavaScript-Hauptdatei, relativ zum Projekt-Root.
+
+viterex_field_css_entry = CSS-Entry
+viterex_field_css_entry_notice = Pfad zur CSS-Hauptdatei, relativ zum Projekt-Root.
+
+viterex_field_public_dir = Öffentliches Verzeichnis
+viterex_field_public_dir_notice = Web-served Verzeichnis. Modern (ydeploy): <code>public</code>. Classic: leer lassen. Theme: <code>theme/public</code>. Der Vite-Plugin-Import-Pfad in <code>vite.config.js</code> wird bei jedem <em>Install stubs</em> daraus neu generiert.
+
+viterex_field_out_dir = Build-Output-Verzeichnis
+viterex_field_out_dir_notice = Wohin Vite die gebauten Assets schreibt, relativ zum Projekt-Root. Default: <code>public/dist</code>.
+
+viterex_field_build_url_path = Build-URL-Prefix
+viterex_field_build_url_path_notice = URL-Prefix für gebaute Assets. Default: <code>/dist</code>.
+
+viterex_field_assets_source_dir = Assets-Source-Verzeichnis
+viterex_field_assets_source_dir_notice = Wo deine Source-Assets liegen, relativ zum Projekt-Root. Default: <code>src/assets</code>. Wird von den <code>Assets::path/url/inline()</code>-Helfern gelesen.
+
+viterex_field_assets_sub_dir = Assets-Unter-Verzeichnis
+viterex_field_assets_sub_dir_notice = Vite's <code>build.assetsDir</code>. Default: <code>assets</code>. Gehashte Dateien landen unter <code>&lt;out_dir&gt;/&lt;assets_sub_dir&gt;/Main-&lt;hash&gt;.js</code>.
+
+viterex_field_copy_dirs = Statische Copy-Verzeichnisse
+viterex_field_copy_dirs_notice = Komma-separierte Liste von Verzeichnissen unter <code>assets_source_dir</code>, die beim Build nach <code>&lt;out_dir&gt;/&lt;assets_sub_dir&gt;/&lt;dir&gt;</code> kopiert werden. Default: <code>img</code>.
+
+viterex_field_https_enabled = HTTPS-Dev-Server aktivieren
+viterex_field_https_enabled_option = Aktiviert
+viterex_field_https_enabled_notice = Benötigt <code>localhost+2-key.pem</code> + <code>localhost+2.pem</code> im Projekt-Root. <code>npm run setup-https</code> führt mkcert aus.
+
+viterex_field_refresh_globs = Live-Reload-Globs
+viterex_field_refresh_globs_notice = Ein Glob pro Zeile. Der Vite-Dev-Server triggert ein Full-Reload bei Änderung passender Dateien.
+
+viterex_install_stubs_title = Projekt-Scaffolding
+viterex_install_stubs_intro = Kopiert die Projekt-Root-Dateien (package.json, vite.config.js, .env.example, Dev-Tooling-Configs, Default-Entry-Stubs) ins Projekt. Der vite.config.js-Import-Pfad wird aus der oben gesetzten <em>Öffentliches Verzeichnis</em> generiert.
+viterex_install_overwrite = Existierende Dateien überschreiben
+viterex_install_stubs_button = Stubs installieren
+viterex_skipped_intro = Diese Dateien existieren bereits und wurden nicht überschrieben (Checkbox aktivieren zum Überschreiben):
+viterex_backed_up_intro = Diese Dateien existierten bereits und wurden vor dem Überschreiben gesichert:

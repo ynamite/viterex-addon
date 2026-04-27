@@ -1,0 +1,24 @@
+{
+	"printWidth": 120,
+	"tabWidth": 2,
+	"useTabs": true,
+	"singleQuote": false,
+	"semi": true,
+	"bracketSameLine": true,
+	"endOfLine": "lf",
+	"trailingComma": "none",
+	"plugins": [
+		"prettier-plugin-style-order",
+		"prettier-plugin-css-order",
+		"prettier-plugin-organize-attributes",
+		"prettier-plugin-tailwindcss"
+	],
+	"overrides": [
+		{
+			"files": "*.{html,php}",
+			"options": {
+				"parser": "html"
+			}
+		}
+	]
+}
