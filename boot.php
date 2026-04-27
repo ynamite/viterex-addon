@@ -35,7 +35,7 @@ if ('' !== (string) rex_request::request('viterex_clear_cache', 'string', '')) {
 $viterexReloadSignal = static function (): void {
     @touch(rex_path::base('.vite-reload-trigger'));
 };
-foreach ([
+$viterexReloadEps = [
     'ART_ADDED', 'ART_UPDATED', 'ART_DELETED', 'ART_MOVED', 'ART_COPIED', 'ART_STATUS',
     'CAT_ADDED', 'CAT_UPDATED', 'CAT_DELETED', 'CAT_MOVED', 'CAT_STATUS',
     'SLICE_ADDED', 'SLICE_UPDATED', 'SLICE_DELETED', 'SLICE_MOVE',
@@ -43,8 +43,13 @@ foreach ([
     'CLANG_ADDED', 'CLANG_UPDATED', 'CLANG_DELETED',
     'TEMPLATE_ADDED', 'TEMPLATE_UPDATED', 'TEMPLATE_DELETED',
     'MODULE_ADDED', 'MODULE_UPDATED', 'MODULE_DELETED',
-    'YFORM_DATA_ADDED', 'YFORM_DATA_UPDATED', 'YFORM_DATA_DELETED',
-] as $epName) {
+];
+if (rex_addon::get('yform')->isAvailable()) {
+    $viterexReloadEps[] = 'YFORM_DATA_ADDED';
+    $viterexReloadEps[] = 'YFORM_DATA_UPDATED';
+    $viterexReloadEps[] = 'YFORM_DATA_DELETED';
+}
+foreach ($viterexReloadEps as $epName) {
     rex_extension::register($epName, $viterexReloadSignal);
 }
 
@@ -63,13 +68,17 @@ if (rex_addon::get('block_peek')->isAvailable()) {
 /** @var rex_addon_interface $addon */
 $addon = $this;
 
-rex_extension::register('YREWRITE_SEO_TAGS', static function (rex_extension_point $ep): void {
-    $tags = $ep->getSubject();
-    if (!Server::isProductionDeployment()) {
-        $tags['robots'] = '<meta name="robots" content="noindex, nofollow" />';
-    }
-    $ep->setSubject($tags);
-});
+// noindex on dev/staging — only when ydeploy is installed (we have no
+// reliable stage signal otherwise; absent ydeploy, treat as untouched).
+if (rex_addon::get('ydeploy')->isAvailable()) {
+    rex_extension::register('YREWRITE_SEO_TAGS', static function (rex_extension_point $ep): void {
+        $tags = $ep->getSubject();
+        if (!Server::isProductionDeployment()) {
+            $tags['robots'] = '<meta name="robots" content="noindex, nofollow" />';
+        }
+        $ep->setSubject($tags);
+    });
+}
 
 rex_extension::register(
     'OUTPUT_FILTER',

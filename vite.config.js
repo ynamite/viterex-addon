@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
-import yaml from "js-yaml";
 import { resolve } from "path";
+import yaml from "js-yaml";
 import { defineConfig } from "vite";
 
 // Read version from package.yml (single source of truth)
@@ -11,84 +11,44 @@ function getVersionFromPackageYml() {
 		const packageData = yaml.load(packageYmlContent);
 		return packageData.version || "1.0.0";
 	} catch (error) {
-		console.warn(
-			"Warning: Could not read version from package.yml:",
-			error.message,
-		);
+		console.warn("Warning: Could not read version from package.yml:", error.message);
 		return "1.0.0";
 	}
 }
 
 const ADDON_VERSION = getVersionFromPackageYml();
-console.log(`🏷️  Building Module Preview v${ADDON_VERSION}`);
+console.log(`🏷️  Building ViteRex Badge v${ADDON_VERSION}`);
 
 export default defineConfig({
-	// Root directory for source files
 	root: "./assets-src",
-
-	// Base path for assets
 	base: "./",
-
-	// Build configuration
 	build: {
-		// Output directory relative to project root.
-		// IMPORTANT: dedicated `badge/` subfolder so emptyOutDir doesn't nuke the
-		// committed `assets/vite/` helpers that ship to user projects via
-		// Redaxo's addon-asset auto-copy.
+		// Dedicated `badge/` subfolder so emptyOutDir: true doesn't nuke the
+		// committed `viterex-vite-plugin.js` and `dev-server-index.html` files
+		// that ship to user projects via Redaxo's addon-asset auto-copy.
 		outDir: "../assets/badge",
-
-		// Empty output directory before building
 		emptyOutDir: true,
-
-		// Minify output
-		// minify: 'terser',
-
-		// Generate source maps for development
 		sourcemap: true,
-
-		// Rollup options
 		rollupOptions: {
 			input: {
-				// Main bundle (CSS + backend JS)
-				ViteRexBadge: resolve(__dirname, "assets-src/ViteRexBadge.js"),
+				"viterex-badge": resolve(__dirname, "assets-src/viterex-badge.js"),
 			},
 			output: {
-				// Naming pattern for assets
-				assetFileNames: (assetInfo) => {
-					const info = assetInfo.name.split(".");
-					const ext = info[info.length - 1];
-					if (ext === "css") {
-						return `[name].css`;
-					}
-					return `[name].[ext]`;
-				},
+				assetFileNames: "[name].[ext]",
 				entryFileNames: "[name].js",
 				chunkFileNames: "[name]-[hash].js",
 			},
-			// External dependencies (don't bundle these)
-			external: (id) => {
-				// Don't bundle jQuery and Bootstrap as they're provided by REDAXO backend
-				return ["jquery", "bootstrap"].some((dep) => id.includes(dep));
-			},
 		},
-
-		// Target browsers (modern browsers for backend, wider support for client)
 		target: ["es2017", "chrome60", "firefox60", "safari11"],
 	},
-
-	// CSS preprocessing
 	css: {
 		postcss: "./postcss.config.js",
 	},
-
-	// Development server (if needed)
 	server: {
 		host: "localhost",
 		port: 5173,
 		open: false,
 	},
-
-	// Define global constants
 	define: {
 		__VERSION__: JSON.stringify(ADDON_VERSION),
 	},

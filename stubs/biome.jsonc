@@ -8,12 +8,12 @@
 	"files": {
 		"includes": [
 			"**",
+			"!**/node_modules",
+			"!**/vendor",
+			"!**/redaxo",
+			"!**/dist",
 			"!**/assets/addons/**/*.*",
-			"**/assets/addons/viterex/**/*.*",
-			"!!**/node_modules",
-			"!!**/vendor",
-			"!!**/redaxo",
-			"!!**/dist"
+			"**/assets/addons/viterex/**/*.*"
 		]
 	},
 	"assist": { "actions": { "source": { "organizeImports": "on" } } },

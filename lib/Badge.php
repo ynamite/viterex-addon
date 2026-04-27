@@ -33,7 +33,7 @@ final class Badge
             }
         }
 
-        $style = '<link rel="stylesheet" href="' . htmlspecialchars($addon->getAssetsUrl('badge/ViteRexBadge.css')) . '">';
+        $style = '<link rel="stylesheet" href="' . htmlspecialchars($addon->getAssetsUrl('badge/viterex-badge.css')) . '">';
 
         $script = sprintf(
             '<script type="module" src="%s" id="viterex-badge-script"'
@@ -45,7 +45,7 @@ final class Badge
             . ' data-vite-url="%s"'
             . ' data-csrf-token="%s"'
             . '></script>',
-            htmlspecialchars($addon->getAssetsUrl('badge/ViteRexBadge.js')),
+            htmlspecialchars($addon->getAssetsUrl('badge/viterex-badge.js')),
             htmlspecialchars($version),
             htmlspecialchars($rexVersion),
             htmlspecialchars($gitBranch),

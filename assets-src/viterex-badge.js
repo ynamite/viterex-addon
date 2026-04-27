@@ -1,5 +1,5 @@
-import "./ViteRexBadge.module.css";
-import classes from "./ViteRexBadge.module.css";
+import "./viterex-badge.module.css";
+import classes from "./viterex-badge.module.css";
 
 const scriptTag = document.getElementById("viterex-badge-script");
 
@@ -33,13 +33,13 @@ if (!scriptTag) {
 
 	badge.innerHTML = `
 		<div class="${classes.badge}">
+			<div class="${classes.label}"><span><b>R</b></span><span class="${classes.version}">${rexVersion}</span></div>
 			<div class="${classes.label}"><span><b>Vite</b>Rex</span><span class="${classes.version}">${version}</span></div>
 			<div class="${classes.infoWrapper}">
 				<span class="${classes.label}">${stage}</span>
 				<span class="${classes.dot} ${viteRunning ? classes.dotOn : classes.dotOff}" title="${dotTitle}"></span>
 				<span class="${classes.branch}">${gitBranch}</span>
 			</div>
-			<div class="${classes.label}"><span><b>R</b></span><span class="${classes.version}">${rexVersion}</span></div>
 			<button type="button" class="${classes.clearCache}" title="Clear Redaxo cache">clear cache</button>
 		</div>
 		${extrasHtml ? `<div class="${classes.extras}">${extrasHtml}</div>` : ""}

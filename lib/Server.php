@@ -85,42 +85,27 @@ final class Server
         return isset($parts[2]) ? trim($parts[2]) : 'unknown';
     }
 
+    /**
+     * Set Redaxo's in-memory debug property to match the current environment.
+     * Pure runtime — does NOT write config.yml. Re-runs on every request via
+     * the constructor; if config.yml says one thing and the environment says
+     * another, the in-memory override wins for the current request.
+     */
     public function checkDebugMode(): void
     {
-        $isDebugMode = rex::isDebugMode();
-        if ($this->isDev) {
-            if (!$isDebugMode) {
-                self::setDebugMode(true);
-            }
-            return;
-        }
-        if (self::isProductionDeployment()) {
-            if ($isDebugMode) {
-                self::setDebugMode(false);
-            }
-            return;
-        }
-        if (!$isDebugMode) {
-            self::setDebugMode(true);
-        }
+        $shouldDebug = $this->isDev || !self::isProductionDeployment();
+        self::setDebugMode($shouldDebug);
     }
 
     public static function setDebugMode(bool $mode): void
     {
-        $configFile = rex_path::coreData('config.yml');
-        $config = rex_file::getConfig($configFile);
-
-        if (!is_array($config['debug'] ?? null)) {
-            $config['debug'] = [];
-        }
-
-        $config['debug']['enabled'] = $mode;
         rex::setProperty('debug', $mode);
-        rex_file::putConfig($configFile, $config);
     }
 
     /**
-     * Hot-file primary; HTTP probe fallback only when env-configured.
+     * Hot-file detection only. The previous HTTP probe fallback added a
+     * 200ms blocking call on every request when VITE_DEV_SERVER was set
+     * in env but Vite wasn't actually running — a latent perf trap.
      */
     private function resolveDevState(): array
     {
@@ -131,38 +116,7 @@ final class Server
                 return [true, trim($contents)];
             }
         }
-
-        $configuredServer = self::env('VITE_DEV_SERVER');
-        if ($configuredServer === null) {
-            return [false, null];
-        }
-        $configuredPort = self::env('VITE_DEV_SERVER_PORT');
-        $devUrl = $configuredServer . ($configuredPort !== null ? ':' . $configuredPort : '');
-        if ($this->probeHttp($devUrl . '/@vite/client')) {
-            return [true, $devUrl];
-        }
         return [false, null];
-    }
-
-    private static function env(string $key): ?string
-    {
-        $value = $_ENV[$key] ?? $_SERVER[$key] ?? null;
-        return is_string($value) && $value !== '' ? $value : null;
-    }
-
-    private function probeHttp(string $url): bool
-    {
-        $context = stream_context_create([
-            'http' => [
-                'timeout'       => 0.2,
-                'ignore_errors' => true,
-            ],
-            'ssl' => [
-                'verify_peer'      => false,
-                'verify_peer_name' => false,
-            ],
-        ]);
-        return @file_get_contents($url, false, $context) !== false;
     }
 
     private function readManifest(): array
