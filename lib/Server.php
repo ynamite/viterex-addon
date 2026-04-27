@@ -86,10 +86,10 @@ final class Server
     }
 
     /**
-     * Set Redaxo's in-memory debug property to match the current environment.
-     * Pure runtime — does NOT write config.yml. Re-runs on every request via
-     * the constructor; if config.yml says one thing and the environment says
-     * another, the in-memory override wins for the current request.
+     * Set Redaxo's debug mode to match the current environment.
+     * Persists to config.yml so downstream consumers that read the file directly
+     * (developer addon, error handler init, etc.) see the right value.
+     * Idempotent: skips the disk write when config.yml already matches.
      */
     public function checkDebugMode(): void
     {
@@ -100,6 +100,17 @@ final class Server
     public static function setDebugMode(bool $mode): void
     {
         rex::setProperty('debug', $mode);
+
+        $configFile = rex_path::coreData('config.yml');
+        $config = rex_file::getConfig($configFile);
+        if (is_array($config['debug'] ?? null) && ($config['debug']['enabled'] ?? null) === $mode) {
+            return; // disk already matches → no write
+        }
+        if (!is_array($config['debug'] ?? null)) {
+            $config['debug'] = [];
+        }
+        $config['debug']['enabled'] = $mode;
+        rex_file::putConfig($configFile, $config);
     }
 
     /**
