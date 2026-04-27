@@ -24,6 +24,23 @@ if ('' !== (string) rex_request::request('viterex_clear_cache', 'string', '')) {
     exit;
 }
 
+// Vite live-reload signal. Touched only on actual admin content saves
+// (not on lazy cache regeneration during frontend navigation), so the
+// Vite watcher fires reloads only when something genuinely changed.
+$viterexReloadSignal = static fn(): bool => @touch(rex_path::base('.vite-reload-trigger'));
+foreach ([
+    'ART_ADDED', 'ART_UPDATED', 'ART_DELETED', 'ART_MOVED', 'ART_COPIED', 'ART_STATUS',
+    'CAT_ADDED', 'CAT_UPDATED', 'CAT_DELETED', 'CAT_MOVED', 'CAT_STATUS',
+    'SLICE_ADDED', 'SLICE_UPDATED', 'SLICE_DELETED', 'SLICE_MOVE',
+    'MEDIA_ADDED', 'MEDIA_UPDATED', 'MEDIA_DELETED',
+    'CLANG_ADDED', 'CLANG_UPDATED', 'CLANG_DELETED',
+    'TEMPLATE_ADDED', 'TEMPLATE_UPDATED', 'TEMPLATE_DELETED',
+    'MODULE_ADDED', 'MODULE_UPDATED', 'MODULE_DELETED',
+    'YFORM_DATA_ADDED', 'YFORM_DATA_UPDATED', 'YFORM_DATA_DELETED',
+] as $epName) {
+    rex_extension::register($epName, $viterexReloadSignal);
+}
+
 /** @var rex_addon_interface $addon */
 $addon = $this;
 

@@ -18,7 +18,7 @@ use rex_yrewrite;
  */
 final class Config
 {
-    public const DEFAULT_REFRESH_GLOBS = "src/modules/**/*.php\nsrc/templates/**/*.php\nsrc/addons/project/fragments/**/*.php\nsrc/addons/project/lib/**/*.php\nsrc/assets/**/(*.svg|*.png|*.jpg|*.jpeg|*.webp|*.avif|*.gif|*.woff|*.woff2)\nvar/cache/addons/(structure|url)/**";
+    public const DEFAULT_REFRESH_GLOBS = "src/modules/**/*.php\nsrc/templates/**/*.php\nsrc/addons/project/fragments/**/*.php\nsrc/addons/project/lib/**/*.php\nsrc/assets/**/(*.svg|*.png|*.jpg|*.jpeg|*.webp|*.avif|*.gif|*.woff|*.woff2)\n.vite-reload-trigger";
 
     public const HOT_FILE_REL = '.vite-hot';
 
