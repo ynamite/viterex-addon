@@ -2,9 +2,7 @@
 
 # ViteRex für REDAXO 5
  
-ViteRex ist ein eigenständiges Redaxo-Addon, das ein modernes Vite-Frontend (Tailwind 4, Live-Reload, Hot-Module-Replacement) in **jede** Redaxo-Installation einbringt — `classic`, `modern` (ydeploy) oder mit `theme`-Addon. Pfade konfigurierst du im Backend; auf Knopfdruck scaffolded das Addon `package.json`, `vite.config.js`, Dev-Tooling-Defaults, Beispiel-Entries und merged `.gitignore`-Einträge in dein Projekt-Root.
-
-> **Vorgängerversion 1.x**: siehe [Migration](##migration-from-v1x). v3 ist eine breaking release.
+ViteRex ist ein eigenständiges Redaxo-Addon, das ein modernes Vite-Frontend (Tailwind 4, Live-Reload, Hot-Module-Replacement) in **jede** Redaxo-Installation einbringt — egal ob klassische, moderne oder Theme-Addon Ordnerstruktur. Pfade konfigurierst du im Backend; auf Knopfdruck scaffolded das Addon `package.json`, `vite.config.js`, Dev-Tooling-Defaults, Beispiel-Entries und merged `.gitignore`-Einträge in dein Projekt-Root.
 
 ---
 
@@ -216,16 +214,6 @@ Beim direkten Aufruf der Vite-Dev-URL (z. B. `https://127.0.0.1:5173`) zeigt der
 Wenn das [`block_peek`](https://github.com/FriendsOfREDAXO/block_peek)-Addon installiert ist, registriert ViteRex einen Handler auf dessen `BLOCK_PEEK_OUTPUT`-EP, der `REX_VITE`-Platzhalter im Block-Preview-Template auflöst. Damit funktioniert HMR + bundled Assets auch in den iframe-Vorschauen im Backend (wo der normale `OUTPUT_FILTER` aus Sicherheitsgründen schweigt).
 
 Die Integration ist konditional — sie aktiviert sich nur, wenn `block_peek` als Addon verfügbar ist. Kein Coupling im Code.
-
----
-
-## <a id="migration-from-v1x"></a> Migration from 1.x
-
-- **`Assets::get()` entfernt.** Templates, die `<?= $assets['js'] ?>` / `$assets['css']` / `$assets['preload']` nutzten, auf `REX_VITE[src="..."]` umstellen — oder `REX_VITE` ganz weglassen und Auto-Insert nutzen.
-- **`Server::getAssetsUrl/getImg/...` entfernt.** Stattdessen `Assets::url('img/foo.png')`, `Assets::path()`, `Assets::inline()`.
-- **Struktur-Auto-Detection entfernt.** Konfiguration jetzt im Backend (Settings).
-- **Mindest-PHP-Version `>=8.1`.**
-- **Alles wird über das Backend konfiguriert** — `.env`-Variablen für viterex-spezifische Pfade gibt's nicht mehr.
 
 ---
 
