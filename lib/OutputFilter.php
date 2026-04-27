@@ -7,15 +7,34 @@ use rex_extension_point;
 
 final class OutputFilter
 {
+    /**
+     * `OUTPUT_FILTER` callback. Frontend-only — backend bails to avoid rewriting
+     * literal "REX_VITE" strings that appear in admin UIs (e.g., the slice editor).
+     * For the block_peek preview iframe, see the `BLOCK_PEEK_OUTPUT` handler in boot.php
+     * which calls `rewriteHtml()` directly (preview is rendered inside a backend request).
+     */
     public static function register(rex_extension_point $ep): void
     {
         if (rex::isBackend()) {
             return;
         }
-
         $content = $ep->getSubject();
         if (!is_string($content) || $content === '') {
             return;
+        }
+        $ep->setSubject(self::rewriteHtml($content));
+    }
+
+    /**
+     * Pure HTML transformer. Replaces `REX_VITE[src="…"]` placeholders with the
+     * rendered asset block; if the document contains no placeholder at all, auto-inserts
+     * the block before the first `</head>`. Reusable across contexts (frontend OUTPUT_FILTER,
+     * block_peek preview, etc.).
+     */
+    public static function rewriteHtml(string $content): string
+    {
+        if ($content === '') {
+            return $content;
         }
 
         $matchCount = 0;
@@ -31,7 +50,7 @@ final class OutputFilter
         );
 
         if ($replaced === null) {
-            return;
+            return $content;
         }
 
         if ($matchCount === 0) {
@@ -50,7 +69,7 @@ final class OutputFilter
             }
         }
 
-        $ep->setSubject($replaced);
+        return $replaced;
     }
 
     private static function parseEntries(string $attrs): ?array

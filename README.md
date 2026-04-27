@@ -23,12 +23,12 @@ Beim Installieren passiert **nichts im Projekt-Root** — das Addon registriert 
 1. **Backend → AddOns → ViteRex → Settings** öffnen.
 2. Pfade reviewen / anpassen — Defaults sind modern (ydeploy)-tauglich (`src/assets/js/main.js`, `public/dist`, `/dist`). Für `classic`: `Public directory` leer lassen, `Build output directory` auf `dist`. Für `theme`: `theme/public` und `theme/public/dist`.
 3. Form speichern (synchronisiert `structure.json`).
-4. Auf den Button **Install stubs** klicken (mit dem Häkchen darunter kannst du existierende Files überschreiben). Das scaffolded:
+4. Auf den Button **Install stubs** klicken. Das Häkchen *Overwrite existing files* steuert, was mit bereits vorhandenen Dateien passiert — **mit Häkchen** wird vorher ein zeitstempel-Backup angelegt (`<datei>.bak.YYYYmmdd-HHiiss`), niemals stillschweigend überschrieben. Gescaffolded werden:
    - `package.json` (Vite 8 + Tailwind 4 + Plugins + Dev-Tooling)
    - `vite.config.js` (minimal, Laravel-style — der Import-Pfad zu `viterex-vite-plugin.js` wird aus deiner `Public directory`-Einstellung generiert)
    - `.env.example`, `.browserslistrc`, `.prettierrc`, `biome.jsonc`, `stylelint.config.js`, `jsconfig.json`
    - `<assets_source_dir>/js/main.js` und `<assets_source_dir>/css/style.css`
-5. `.gitignore` wird zeilenweise gescannt — fehlende ViteRex-Einträge werden unter einer `# Added by viterex`-Markierung ergänzt.
+5. `.gitignore` wird zeilenweise gescannt — fehlende ViteRex-Einträge (inkl. `.vite-hot`, `.vite-reload-trigger`, mkcert-Certs) werden unter einer `# Added by viterex`-Markierung ergänzt.
 6. `npm install && npm run dev` — fertig. Vite startet, `.vite-hot` taucht im Projekt-Root auf, Browser zeigt deine Seite mit HMR.
 
 ---
@@ -112,7 +112,28 @@ Assets, die per JS oder CSS importiert werden (`import "../img/foo.png?url"` ode
 | **Assets sub-directory** | `assets` | Vite `build.assetsDir` |
 | **Static copy directories** | `img` | Komma-separierte Liste — kopiert beim Build von `<assets_source_dir>/<dir>/` nach `<out_dir>/<assets_sub_dir>/<dir>` |
 | **Enable HTTPS dev server** | off | Aktiviert HTTPS, wenn mkcert-Certs am Projekt-Root liegen |
-| **Live-reload globs** | (PHP-Templates etc.) | Ein Glob pro Zeile — Vite triggert Full-Reload bei Änderung passender Files |
+| **Live-reload globs** | siehe nächster Abschnitt | Ein Glob pro Zeile — Vite triggert Full-Reload bei Änderung passender Files |
+
+---
+
+## Live-Reload
+
+Vite's Browser-Reload wird über `vite-plugin-live-reload` ausgelöst. Default-Globs (Settings → *Live-reload globs*):
+
+```
+src/modules/**/*.php
+src/templates/**/*.php
+src/addons/project/fragments/**/*.php
+src/addons/project/lib/**/*.php
+src/assets/**/(*.svg|*.png|*.jpg|*.jpeg|*.webp|*.avif|*.gif|*.woff|*.woff2)
+.vite-reload-trigger
+```
+
+Die ersten fünf Globs decken **direkte Datei-Änderungen** ab (du speicherst eine PHP-Datei in deiner IDE → Reload).
+
+`.vite-reload-trigger` ist ein **Signal-File** für **Backend-getriebene Content-Änderungen**. `boot.php` registriert Handler auf ~30 Redaxo-Extension-Points (`ART_*`, `CAT_*`, `SLICE_*`, `MEDIA_*`, `TEMPLATE_*`, `MODULE_*`, `CLANG_*`, `YFORM_DATA_*`), die bei jedem Save die mtime von `<base>/.vite-reload-trigger` aktualisieren. Vite sieht die Änderung → Reload.
+
+Wichtig: dieses Signal feuert **nur bei tatsächlichen Admin-Save-Aktionen**, nicht bei Cache-Misses während normaler Frontend-Navigation (was die alte cache-dir-basierte Variante tat und zu unnötigen Reloads führte).
 
 ---
 
@@ -180,7 +201,21 @@ User wechselt dann in seiner `vite.config.js` einfach den Import + Plugin-Aufruf
 
 ## Das Badge
 
-Bei aktiver Backend-Session und Nicht-Prod/Nicht-Staging-Umgebung wird ein Badge unten am Fenster eingeblendet (Frontend + Backend). Zeigt: Stage (`dev`/`staging`/`prod`), Git-Branch, Vite-Status (laufend? URL?) — mit Click-to-copy, ViteRex- und Redaxo-Version, **Clear cache**-Button (CSRF-geschützter POST). Andere Addons können via `VITEREX_BADGE`-Extension-Point eigene Panels hinzufügen.
+Bei aktiver Backend-Session und Nicht-Prod/Nicht-Staging-Umgebung wird ein Badge unten am Fenster eingeblendet (Frontend + Backend). Zeigt: Stage (`dev`/`staging`/`prod`), Git-Branch, ein farbiger Punkt für den Vite-Status (an = Stage-Farbe + Glow; aus = grau) mit **Tooltip** auf Hover (`Vite @ <url>`), ViteRex- und Redaxo-Version, **Clear cache**-Button (CSRF-geschützter POST). Andere Addons können via `VITEREX_BADGE`-Extension-Point eigene Panels hinzufügen.
+
+---
+
+## Dev-Server-Landing-Page
+
+Beim direkten Aufruf der Vite-Dev-URL (z. B. `https://127.0.0.1:5173`) zeigt der eingebaute `viterex:dev-index`-Plugin (im `viterex-vite-plugin.js`) eine kleine HTML-Seite mit Hinweis "Vite läuft" + Link zur eigentlichen Projekt-URL (aus `host_url` in `structure.json`). Verhindert die irritierende leere Seite, die Vite sonst hier serviert.
+
+---
+
+## block_peek-Integration
+
+Wenn das [`block_peek`](https://github.com/FriendsOfREDAXO/block_peek)-Addon installiert ist, registriert ViteRex einen Handler auf dessen `BLOCK_PEEK_OUTPUT`-EP, der `REX_VITE`-Platzhalter im Block-Preview-Template auflöst. Damit funktioniert HMR + bundled Assets auch in den iframe-Vorschauen im Backend (wo der normale `OUTPUT_FILTER` aus Sicherheitsgründen schweigt).
+
+Die Integration ist konditional — sie aktiviert sich nur, wenn `block_peek` als Addon verfügbar ist. Kein Coupling im Code.
 
 ---
 
