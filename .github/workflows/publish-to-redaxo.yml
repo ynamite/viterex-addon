@@ -41,8 +41,8 @@ jobs:
 
       - name: Create release archive
         run: |
-          zip -r viterex-addon.zip . \
-            -x "viterex-addon.zip" \
+          zip -r viterex_addon.zip . \
+            -x "viterex_addon.zip" \
             -x "node_modules/*" \
             -x ".git/*" \
             -x ".github/*" \
@@ -65,8 +65,8 @@ jobs:
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
-          files: viterex-addon.zip
-          name: viterex-addon-${{ github.event.release.tag_name }}.zip
+          files: viterex_addon.zip
+          name: viterex_addon-${{ github.event.release.tag_name }}.zip
 
       - uses: FriendsOfREDAXO/installer-action@v1
         with:
