@@ -11,10 +11,8 @@ use rex_extension_point;
 
 final class Badge
 {
-    public static function get(): string
+    public static function get(rex_addon_interface $addon): string
     {
-        /** @var rex_addon_interface $addon */
-        $addon       = rex_addon::get('viterex');
         $version     = (string) $addon->getVersion();
         $rexVersion  = (string) rex::getVersion();
         $gitBranch   = Server::getGitBranch();
@@ -37,14 +35,14 @@ final class Badge
 
         $script = sprintf(
             '<script type="module" src="%s" id="viterex-badge-script"'
-            . ' data-version="%s"'
-            . ' data-rex-version="%s"'
-            . ' data-git-branch="%s"'
-            . ' data-stage="%s"'
-            . ' data-vite-running="%s"'
-            . ' data-vite-url="%s"'
-            . ' data-csrf-token="%s"'
-            . '></script>',
+                . ' data-version="%s"'
+                . ' data-rex-version="%s"'
+                . ' data-git-branch="%s"'
+                . ' data-stage="%s"'
+                . ' data-vite-running="%s"'
+                . ' data-vite-url="%s"'
+                . ' data-csrf-token="%s"'
+                . '></script>',
             htmlspecialchars($addon->getAssetsUrl('badge/viterex-badge.js')),
             htmlspecialchars($version),
             htmlspecialchars($rexVersion),

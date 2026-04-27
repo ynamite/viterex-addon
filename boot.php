@@ -107,12 +107,12 @@ rex_extension::register(
 );
 
 if (rex_backend_login::hasSession() && !Server::isProductionDeployment() && !Server::isStagingDeployment()) {
-    rex_extension::register('OUTPUT_FILTER', static function (rex_extension_point $ep): void {
+    rex_extension::register('OUTPUT_FILTER', static function (rex_extension_point $ep) use ($addon): void {
         $content = $ep->getSubject();
         if (!is_string($content)) {
             return;
         }
-        $badge = Badge::get();
+        $badge = Badge::get($addon);
         $content = str_ireplace('</body>', $badge . '</body>', $content);
         $ep->setSubject($content);
     });
