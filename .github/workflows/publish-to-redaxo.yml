@@ -60,6 +60,7 @@ jobs:
             -x "*.DS_Store" \
             -x "*Thumbs.db" \
             -x ".editorconfig" \
+            -x "viterex.png" \
             -x "docker-compose*"
 
       - name: Upload release asset
