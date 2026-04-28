@@ -14,6 +14,14 @@ Programmatic API additions for downstream addons (e.g. redaxo-massif). No breaki
 ### Internal
 
 - `StubsInstaller::run()` refactored to delegate file copying to `installFromDir()`. Behavior preserved; `gitignoreAction` still set via the existing `mergeGitignore()` (now only run by `run()`, not the generic `installFromDir`).
+- Hardcoded install-result message in `pages/settings.php` extracted to a `viterex_install_result` lang key (`lang/en_gb.lang`, `lang/de_de.lang`). Now uses `rex_i18n::rawMsg()` like the rest of the page.
+- German translation polish in `lang/de_de.lang` — leftover English fragments translated (`Entry Points` → `Einstiegspunkte`, `Tooling` → `Werkzeuge`, `Web-served` → `Vom Webserver ausgeliefertes`, `Install stubs` → `Stubs installieren`, `JS-Entry` / `CSS-Entry` → `JS-Einstiegspunkt` / `CSS-Einstiegspunkt`, `Dev-Tooling-Configs` → `Dev-Tooling-Konfigurationen`).
+
+### Documentation
+
+- `README.md` rewritten in German with full feature coverage matching the English version (entry points, paths, dev settings, hot-file flow, `REX_VITE` placeholder, dev badge, downstream-addon API). Earlier in the cycle, the English README was also revised for installation paths and settings.
+- `docs/vite-plus-evaluation.md` added — evaluation of a potential Vite+ migration. Recommendation: monitor, no migration today.
+- Hero image `viterex.png` added at repo root.
 
 ## **Version 3.0.0**
 
