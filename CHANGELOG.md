@@ -1,12 +1,26 @@
 # Changelog
 
-## **Version 3.1.0**
+## **Version 3.1.2**
 
-Programmatic API additions for downstream addons (e.g. redaxo-massif). No breaking changes.
+Path-naming consistency pass. No behavior changes beyond the rename. **Migration**: existing 3.0.x / 3.1.0 / 3.1.1 installs have their `structure.json` at `var/data/addons/viterex/` (or `redaxo/data/addons/viterex/`) and reference `assets/addons/viterex/viterex-vite-plugin.js` in their `vite.config.js`. After upgrading, re-save the Settings form to seed the new path, and update the `viterex-vite-plugin.js` import in `vite.config.js` from `…/viterex/…` to `…/viterex_addon/…` (or click "Install stubs" with overwrite to have the import re-baked).
+
+### Changed
+
+- **Addon-name normalization across all paths**: `viterex` → `viterex_addon` (matches `package.yml`'s `package:` key, which is what Redaxo's package manager actually uses on disk). Touches:
+  - `assets/viterex-vite-plugin.js` — `STRUCTURE_PATH_CANDIDATES` now points at `var/data/addons/viterex_addon/structure.json` and `redaxo/data/addons/viterex_addon/structure.json`; error message updated.
+  - `lib/StubsInstaller.php::resolvePluginImportPath()` — `__VITEREX_PLUGIN_IMPORT_PATH__` token is now baked as `./<public>/assets/addons/viterex_addon/viterex-vite-plugin.js` in the scaffolded `vite.config.js`.
+  - `stubs/biome.jsonc` — Biome include glob updated to `**/assets/addons/viterex_addon/**/*.*`.
+  - `stubs/.env.example`, `README.md`, `CLAUDE.md` — references aligned.
+
+## **Version 3.1.1**
 
 ### Fixed
 
-- **HTTPS dev-server checkbox** in *AddOns → ViteRex → Settings* didn't actually enable HTTPS. `rex_form_checkbox_element` saves checked options as pipe-delimited strings (`|1|`), but `Config::syncStructureJson()` compared `=== '1'` and so always wrote `"https_enabled": false` to `structure.json`. The Vite plugin then started in plain HTTP and the hot file ended up `http://127.0.0.1:5173`. Normalize the pipe-delimited form before the bool cast.
+- **HTTPS dev-server checkbox** in *AddOns → ViteRex → Settings* didn't actually enable HTTPS. `rex_form_checkbox_element` saves checked options as pipe-delimited strings (`|1|`), but `Config::syncStructureJson()` compared `=== '1'` and so always wrote `"https_enabled": false` to `structure.json`. The Vite plugin then started in plain HTTP and the hot file ended up `http://127.0.0.1:5173`. New `isCheckboxChecked()` helper in `lib/Config.php` strips outer pipes, splits on `|`, and tests for `'1'` membership — round-trips correctly across all five values the field can take (`|1|`, `||`, `''`, `'0'`, `'1'`).
+
+## **Version 3.1.0**
+
+Programmatic API additions for downstream addons (e.g. redaxo-massif). No breaking changes.
 
 ### Added
 
