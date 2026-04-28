@@ -2,7 +2,8 @@
 
 ## **Version 3.1.2**
 
-Path-naming consistency pass. No behavior changes beyond the rename. **Migration**: existing 3.0.x / 3.1.0 / 3.1.1 installs have their `structure.json` at `var/data/addons/viterex/` (or `redaxo/data/addons/viterex/`) and reference `assets/addons/viterex/viterex-vite-plugin.js` in their `vite.config.js`. After upgrading, re-save the Settings form to seed the new path, and update the `viterex-vite-plugin.js` import in `vite.config.js` from `…/viterex/…` to `…/viterex_addon/…` (or click "Install stubs" with overwrite to have the import re-baked).
+- Path-naming consistency pass. No behavior changes beyond the rename. **Migration**: existing 3.0.x / 3.1.0 / 3.1.1 installs have their `structure.json` at `var/data/addons/viterex/` (or `redaxo/data/addons/viterex/`) and reference `assets/addons/viterex/viterex-vite-plugin.js` in their `vite.config.js`. After upgrading, re-save the Settings form to seed the new path, and update the `viterex-vite-plugin.js` import in `vite.config.js` from `…/viterex/…` to `…/viterex_addon/…` (or click "Install stubs" with overwrite to have the import re-baked).
+- add exclude to gitignore example for the new `assets/addons/viterex_addon/` path.
 
 ### Changed
 
@@ -16,7 +17,7 @@ Path-naming consistency pass. No behavior changes beyond the rename. **Migration
 
 ### Fixed
 
-- **HTTPS dev-server checkbox** in *AddOns → ViteRex → Settings* didn't actually enable HTTPS. `rex_form_checkbox_element` saves checked options as pipe-delimited strings (`|1|`), but `Config::syncStructureJson()` compared `=== '1'` and so always wrote `"https_enabled": false` to `structure.json`. The Vite plugin then started in plain HTTP and the hot file ended up `http://127.0.0.1:5173`. New `isCheckboxChecked()` helper in `lib/Config.php` strips outer pipes, splits on `|`, and tests for `'1'` membership — round-trips correctly across all five values the field can take (`|1|`, `||`, `''`, `'0'`, `'1'`).
+- **HTTPS dev-server checkbox** in _AddOns → ViteRex → Settings_ didn't actually enable HTTPS. `rex_form_checkbox_element` saves checked options as pipe-delimited strings (`|1|`), but `Config::syncStructureJson()` compared `=== '1'` and so always wrote `"https_enabled": false` to `structure.json`. The Vite plugin then started in plain HTTP and the hot file ended up `http://127.0.0.1:5173`. New `isCheckboxChecked()` helper in `lib/Config.php` strips outer pipes, splits on `|`, and tests for `'1'` membership — round-trips correctly across all five values the field can take (`|1|`, `||`, `''`, `'0'`, `'1'`).
 
 ## **Version 3.1.0**
 
@@ -47,7 +48,7 @@ Breaking release. ViteRex is now a standalone Redaxo addon installable in **any*
 
 ### Added
 
-- **Backend CRUD form** at *AddOns → ViteRex → Settings* (`pages/settings.php`) for all paths and dev settings — entries, public dir, out dir, URL prefix, source dir, static copy dirs, HTTPS, live-reload globs. Persisted via `rex_config('viterex', ...)` and mirrored to `var/data/addons/viterex/structure.json` (modern) or `redaxo/data/addons/viterex/structure.json` (classic+theme) for the Vite plugin to read.
+- **Backend CRUD form** at _AddOns → ViteRex → Settings_ (`pages/settings.php`) for all paths and dev settings — entries, public dir, out dir, URL prefix, source dir, static copy dirs, HTTPS, live-reload globs. Persisted via `rex_config('viterex', ...)` and mirrored to `var/data/addons/viterex/structure.json` (modern) or `redaxo/data/addons/viterex/structure.json` (classic+theme) for the Vite plugin to read.
 - **"Install stubs" button** with optional "overwrite existing" checkbox — copies `package.json`, `vite.config.js`, `.env.example`, dev-tooling configs, and entry stubs to the project root. Bakes the structure-aware `viterex-vite-plugin.js` import path at scaffold time. Also performs `.gitignore` scan-and-merge.
 - **`REX_VITE` placeholder** with optional `[src="a|b"]` attribute (pipe-separated entries). Auto-inserts before `</head>` when no placeholder is present.
 - **`assets/viterex-vite-plugin.js`** — Laravel-style Vite plugin shipped in the addon's `assets/` (Redaxo auto-copies to `<frontend>/assets/addons/viterex/`). Exports default `viterex(options)` returning a Plugin[] (hot-file plugin, named `viterex` plugin with `config()` hook injecting build/server/css/resolve, `viteStaticCopy` sibling, `liveReload` sibling). Also exports `fixTailwindFullReload()` for the Tailwind 4 hotUpdate workaround. Single-bind exit handlers for `exit`/`SIGINT`/`SIGTERM`/`SIGHUP`.
