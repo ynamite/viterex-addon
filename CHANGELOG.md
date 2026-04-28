@@ -1,5 +1,11 @@
 # Changelog
 
+## **Version 3.1.3**
+
+### Fixed
+
+- Restored `rex_developer_manager::setBasePath(rex_path::src())` in `boot.php` when the `developer` addon is available. The call was dropped during the v3 refactor (commit `137f8ea`) along with the now-removed `Structure` class; without it, the developer addon writes to its default location instead of the Redaxo source directory.
+
 ## **Version 3.1.2**
 
 - Path-naming consistency pass. No behavior changes beyond the rename. **Migration**: existing 3.0.x / 3.1.0 / 3.1.1 installs have their `structure.json` at `var/data/addons/viterex/` (or `redaxo/data/addons/viterex/`) and reference `assets/addons/viterex/viterex-vite-plugin.js` in their `vite.config.js`. After upgrading, re-save the Settings form to seed the new path, and update the `viterex-vite-plugin.js` import in `vite.config.js` from `…/viterex/…` to `…/viterex_addon/…` (or click "Install stubs" with overwrite to have the import re-baked).

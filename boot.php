@@ -24,6 +24,10 @@ if ('' !== (string) rex_request::request('viterex_clear_cache', 'string', '')) {
     exit;
 }
 
+if (rex_addon::get('developer')->isAvailable()) {
+    rex_developer_manager::setBasePath(rex_path::src());
+}
+
 // Vite live-reload signal. Touched only on actual admin content saves
 // (not on lazy cache regeneration during frontend navigation), so the
 // Vite watcher fires reloads only when something genuinely changed.
