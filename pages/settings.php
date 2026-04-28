@@ -18,8 +18,8 @@ if (rex_post('viterex_install_stubs', 'boolean')) {
         $overwrite = (bool) rex_post('viterex_overwrite', 'boolean');
         $result = StubsInstaller::run($overwrite);
 
-        $message = sprintf(
-            '<strong>%d</strong> file(s) written, <strong>%d</strong> skipped, <strong>%d</strong> backed up. <code>.gitignore</code>: %s.',
+        $message = rex_i18n::rawMsg(
+            'viterex_install_result',
             count($result['written']),
             count($result['skipped']),
             count($result['backedUp']),

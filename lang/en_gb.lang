@@ -42,5 +42,6 @@ viterex_install_stubs_title = Project scaffolding
 viterex_install_stubs_intro = Copy the project-root files (package.json, vite.config.js, .env.example, dev tooling configs, default entry stubs) into your project. The vite.config.js import path is baked from the <em>Public directory</em> setting above.
 viterex_install_overwrite = Overwrite existing files
 viterex_install_stubs_button = Install stubs
+viterex_install_result = <strong>%d</strong> file(s) written, <strong>%d</strong> skipped, <strong>%d</strong> backed up. <code>.gitignore</code>: %s.
 viterex_skipped_intro = These files already exist and were preserved (tick the overwrite checkbox to replace them):
 viterex_backed_up_intro = These existing files were backed up before being overwritten:
