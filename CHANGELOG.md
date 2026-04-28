@@ -1,5 +1,20 @@
 # Changelog
 
+## **Version 3.1.0**
+
+Programmatic API additions for downstream addons (e.g. redaxo-massif). No breaking changes.
+
+### Added
+
+- **`StubsInstaller::installFromDir($sourceDir, $stubsMap, $overwrite, $packageDeps)`** — public, reusable file-installer. Downstream addons call it from their own `install.php` / Settings handlers to push files into the user's project, reusing viterex_addon's path-baking, backup-on-overwrite, and structure-aware target resolution.
+- **`StubsInstaller::appendRefreshGlobs($lines)`** — public helper for downstream addons that need Vite to live-reload on additional paths (e.g. their own fragments/lib directories). Reads `rex_config('viterex','refresh_globs')`, idempotently appends only missing lines.
+- **`VITEREX_INSTALL_STUBS` extension point** — fired from inside `StubsInstaller::run()` (the path triggered by viterex's "Install Stubs" button). Subject is the result array `{written, skipped, backedUp, gitignoreAction}`. Subscribers can append entries by calling `installFromDir()` themselves and merging the returned arrays into the subject. Params: `overwrite` (bool, from the user's checkbox).
+- **`mergePackageDeps()` private helper** — wired into `installFromDir` via the `$packageDeps` argument. Merges npm dependencies into the user's `package.json` additively, with `version_compare` resolving conflicts (higher wins).
+
+### Internal
+
+- `StubsInstaller::run()` refactored to delegate file copying to `installFromDir()`. Behavior preserved; `gitignoreAction` still set via the existing `mergeGitignore()` (now only run by `run()`, not the generic `installFromDir`).
+
 ## **Version 3.0.0**
 
 Breaking release. ViteRex is now a standalone Redaxo addon installable in **any** Redaxo setup (classic / modern / theme), with a Laravel-vite-plugin-style architecture and a Redaxo backend CRUD form for configuration.

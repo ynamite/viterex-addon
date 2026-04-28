@@ -183,6 +183,59 @@ User wechselt dann in seiner `vite.config.js` einfach den Import + Plugin-Aufruf
 
 ---
 
+## Programmatic API für Downstream-Addons
+
+Andere Redaxo-Addons können auf zwei Wegen ihre eigenen Dateien zusätzlich zu ViteRex' Stubs ins Projekt-Root scaffolden — beide reusen ViteRex' bewährte path-baking + backup-on-overwrite + struktur-bewusste Zielauflösung.
+
+**Direktaufruf** — aus eigener `install.php` oder Settings-Handler:
+
+```php
+use Ynamite\ViteRex\StubsInstaller;
+
+$result = StubsInstaller::installFromDir(
+    __DIR__ . '/frontend',                  // Source-Dir des Downstream-Addons
+    [                                        // Map: source-rel → target-rel-to-base
+        'templates/Header/template.php' => '/src/templates/Header/template.php',
+        'modules/Swiper/input.php'      => '/src/modules/Swiper/input.php',
+        'assets/img/logo.svg'           => '/src/assets/img/logo.svg',
+    ],
+    overwrite: false,                        // true → Backup-on-overwrite (.bak.<ts>)
+    packageDeps: [                           // optional npm-Dep-Merge
+        'devDependencies' => ['swiper' => '^12.1.2', 'gsap' => '^3.14.2'],
+    ],
+);
+// Returns: ['written' => [...], 'skipped' => [...], 'backedUp' => [...], 'packageDepsMerged' => 2]
+
+// Optional: Vite-Live-Reload-Globs erweitern (idempotent)
+StubsInstaller::appendRefreshGlobs([
+    'src/addons/myaddon/fragments/**/*.php',
+    'src/addons/myaddon/lib/**/*.php',
+]);
+```
+
+**Extension-Point-Hook** — aus eigener `boot.php`, registriert sich auf ViteRex' "Install Stubs"-Button-Flow:
+
+```php
+rex_extension::register('VITEREX_INSTALL_STUBS', static function (rex_extension_point $ep) {
+    $overwrite = $ep->getParam('overwrite', false);
+    $myResult = Ynamite\ViteRex\StubsInstaller::installFromDir(
+        __DIR__ . '/frontend', $myStubsMap, $overwrite,
+    );
+    // Eigenes Resultat in subject mergen, damit ViteRex' Settings-Page beide auflistet
+    $subject = $ep->getSubject();
+    foreach (['written', 'skipped', 'backedUp'] as $k) {
+        $subject[$k] = array_merge($subject[$k] ?? [], $myResult[$k] ?? []);
+    }
+    return $subject;
+});
+```
+
+Die zwei Wege sind komplementär: der Direktaufruf passt für Auto-Install in `install.php`; der Hook fängt explizite Re-Installs aus ViteRex' eigener UI ab. Ein Addon kann beide nutzen — der Direktaufruf für initiale Auto-Install, der Hook für nachträgliche Re-Scaffolds.
+
+**Konvention für Idempotenz**: das Downstream-Addon trackt selbst, ob es schon scaffolded hat (z. B. via `rex_config('myaddon', 'scaffolded_at')`). `installFromDir` selbst ist nicht idempotent — sie kopiert immer.
+
+---
+
 ## Erweiterungspunkte (PHP)
 
 | Name              | Subject                      | Verwendung                                                                          |

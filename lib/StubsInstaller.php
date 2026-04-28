@@ -3,25 +3,70 @@
 namespace Ynamite\ViteRex;
 
 use rex_dir;
+use rex_extension;
+use rex_extension_point;
 use rex_file;
 use rex_path;
 
 /**
- * Copies stub files from `viterex-addon/stubs/` into the user's project root.
- * Invoked from `pages/settings.php` when the user clicks "Install stubs".
+ * Copies stub files from a source directory into the user's project root, with
+ * structure-aware target paths, backup-on-overwrite, and optional package.json
+ * dependency merging.
+ *
+ * Two entry points:
+ *   - `run($overwrite)` — invoked from `pages/settings.php` "Install stubs" button.
+ *     Installs viterex_addon's own stubs from `stubs/`, merges `.gitignore.example`,
+ *     and fires the `VITEREX_INSTALL_STUBS` extension point so downstream addons
+ *     (e.g., redaxo-massif) can append their own stubs to the same operation.
+ *   - `installFromDir($sourceDir, $stubsMap, $overwrite, $packageDeps)` — public,
+ *     reusable. Downstream addons call this from their own install.php / Settings
+ *     handlers to push their files into the project, respecting the user's viterex
+ *     Settings (paths, etc.).
  */
 final class StubsInstaller
 {
     /**
+     * Run viterex_addon's own stub install. Fires VITEREX_INSTALL_STUBS hook
+     * after the core install, letting subscribers contribute additional stubs.
+     *
      * @return array{written: list<string>, skipped: list<string>, backedUp: list<string>, gitignoreAction: string}
      */
     public static function run(bool $overwrite = false): array
     {
+        $result = self::installFromDir(self::stubsDir(), self::resolveStubs(), $overwrite);
+        $result['gitignoreAction'] = self::mergeGitignore();
+
+        // Hook for downstream addons (e.g. redaxo-massif). They can append their
+        // own files by calling installFromDir() and merging the returned arrays
+        // into the subject. Subject preserved as-is when no subscribers.
+        $hookResult = rex_extension::registerPoint(
+            new rex_extension_point('VITEREX_INSTALL_STUBS', $result, ['overwrite' => $overwrite]),
+        );
+        return is_array($hookResult) ? $hookResult : $result;
+    }
+
+    /**
+     * Generic installer — public API for downstream addons.
+     *
+     * @param string $sourceDir Absolute path to the source directory (e.g., __DIR__ . '/frontend')
+     * @param array<string,string> $stubsMap Map of source-relative-to-$sourceDir → target-relative-to-base
+     * @param bool $overwrite If true, existing files are backed up (timestamped sibling) before being replaced
+     * @param array{dependencies?: array<string,string>, devDependencies?: array<string,string>}|null $packageDeps
+     *        Optional npm dependency merge. Adds these into the user's project package.json (additive,
+     *        higher version wins on conflict). Pass null to skip the merge step.
+     * @return array{written: list<string>, skipped: list<string>, backedUp: list<string>, packageDepsMerged?: int}
+     */
+    public static function installFromDir(
+        string $sourceDir,
+        array $stubsMap,
+        bool $overwrite = false,
+        ?array $packageDeps = null,
+    ): array {
         $written = [];
         $skipped = [];
         $backedUp = [];
-        foreach (self::resolveStubs() as $source => $relTarget) {
-            $sourcePath = self::stubsDir() . '/' . $source;
+        foreach ($stubsMap as $source => $relTarget) {
+            $sourcePath = rtrim($sourceDir, '/') . '/' . ltrim($source, '/');
             if (!is_file($sourcePath)) {
                 continue;
             }
@@ -31,8 +76,6 @@ final class StubsInstaller
                     $skipped[] = $relTarget;
                     continue;
                 }
-                // Backup-on-overwrite: never blow away existing files (especially main.js / style.css)
-                // without a recoverable copy. Timestamped sibling, idempotent across re-runs.
                 $backupPath = $target . '.bak.' . date('Ymd-His');
                 rex_file::copy($target, $backupPath);
                 $backedUp[] = $relTarget . ' → ' . basename($backupPath);
@@ -41,13 +84,77 @@ final class StubsInstaller
             rex_file::put($target, self::transform($source, $sourcePath));
             $written[] = $relTarget;
         }
-        $gitignoreAction = self::mergeGitignore();
-        return [
-            'written'         => $written,
-            'skipped'         => $skipped,
-            'backedUp'        => $backedUp,
-            'gitignoreAction' => $gitignoreAction,
-        ];
+        $result = compact('written', 'skipped', 'backedUp');
+        if ($packageDeps !== null) {
+            $result['packageDepsMerged'] = self::mergePackageDeps($packageDeps);
+        }
+        return $result;
+    }
+
+    /**
+     * Append lines to viterex's `refresh_globs` rex_config (idempotent — only
+     * adds lines not already present). Useful for downstream addons that need
+     * Vite to watch additional paths (e.g. their own fragments/lib directories).
+     *
+     * @param list<string> $lines
+     * @return int Number of lines actually appended
+     */
+    public static function appendRefreshGlobs(array $lines): int
+    {
+        $current = Config::get('refresh_globs');
+        $existing = array_map('trim', explode("\n", $current));
+        $new = array_values(array_diff(array_map('trim', $lines), $existing));
+        if (empty($new)) {
+            return 0;
+        }
+        Config::set('refresh_globs', rtrim($current) . "\n" . implode("\n", $new));
+        return count($new);
+    }
+
+    /**
+     * Merge npm dependencies into the user's project package.json.
+     * Additive — never removes user-installed deps. On version conflict, keeps
+     * whichever constraint compares higher via `version_compare` on the
+     * leading semver segment.
+     *
+     * @param array{dependencies?: array<string,string>, devDependencies?: array<string,string>} $deps
+     * @return int Number of new entries added (across both sections)
+     */
+    private static function mergePackageDeps(array $deps): int
+    {
+        $packageJsonPath = rex_path::base('package.json');
+        if (!is_file($packageJsonPath)) {
+            return 0;
+        }
+        $raw = (string) rex_file::get($packageJsonPath);
+        $pkg = json_decode($raw, true);
+        if (!is_array($pkg)) {
+            return 0;
+        }
+        $added = 0;
+        foreach (['dependencies', 'devDependencies'] as $section) {
+            if (empty($deps[$section]) || !is_array($deps[$section])) {
+                continue;
+            }
+            $current = is_array($pkg[$section] ?? null) ? $pkg[$section] : [];
+            foreach ($deps[$section] as $name => $constraint) {
+                if (!isset($current[$name])) {
+                    $current[$name] = $constraint;
+                    $added++;
+                    continue;
+                }
+                // Both have it — keep the higher constraint (naive — strips ^ ~ etc.)
+                $existingV = ltrim((string) $current[$name], '^~>=< ');
+                $incomingV = ltrim((string) $constraint, '^~>=< ');
+                if (version_compare($incomingV, $existingV, '>')) {
+                    $current[$name] = $constraint;
+                }
+            }
+            ksort($current);
+            $pkg[$section] = $current;
+        }
+        rex_file::put($packageJsonPath, json_encode($pkg, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+        return $added;
     }
 
     private static function stubsDir(): string
@@ -79,7 +186,7 @@ final class StubsInstaller
     private static function transform(string $source, string $sourcePath): string
     {
         $contents = (string) rex_file::get($sourcePath);
-        if ($source === 'vite.config.js') {
+        if (basename($source) === 'vite.config.js') {
             $contents = str_replace(
                 '__VITEREX_PLUGIN_IMPORT_PATH__',
                 self::resolveViterexPluginImportPath(),
