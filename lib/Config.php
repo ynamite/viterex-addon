@@ -134,7 +134,7 @@ final class Config
             'assets_sub_dir'    => $cfg['assets_sub_dir'],
             'build_url_path'    => $cfg['build_url_path'],
             'copy_dirs'         => $cfg['copy_dirs'],
-            'https_enabled'     => $cfg['https_enabled'] === '1',
+            'https_enabled'     => self::isCheckboxChecked($cfg['https_enabled']),
             'refresh_globs'     => $cfg['refresh_globs'],
             'hot_file'          => self::HOT_FILE_REL,
             'host_url'          => self::getHostUrl(),
@@ -143,5 +143,17 @@ final class Config
             rex_path::addonData('viterex', 'structure.json'),
             json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
         );
+    }
+
+    /**
+     * `rex_form_checkbox_element` POSTs as `field[<value>]=<value>`, which
+     * `rex_form_element::setValue()` then wraps in pipes (`|1|` checked,
+     * `||` unchecked) before `rex_config::set` writes it. The seeded default
+     * (`'0'`) and any programmatic `Config::set('…','1')` skip that wrapping.
+     * Treat all forms uniformly so `=== '1'` doesn't silently miss `|1|`.
+     */
+    private static function isCheckboxChecked(string $value): bool
+    {
+        return in_array('1', explode('|', trim($value, '|')), true);
     }
 }

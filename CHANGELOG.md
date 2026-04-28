@@ -4,6 +4,10 @@
 
 Programmatic API additions for downstream addons (e.g. redaxo-massif). No breaking changes.
 
+### Fixed
+
+- **HTTPS dev-server checkbox** in *AddOns → ViteRex → Settings* didn't actually enable HTTPS. `rex_form_checkbox_element` saves checked options as pipe-delimited strings (`|1|`), but `Config::syncStructureJson()` compared `=== '1'` and so always wrote `"https_enabled": false` to `structure.json`. The Vite plugin then started in plain HTTP and the hot file ended up `http://127.0.0.1:5173`. Normalize the pipe-delimited form before the bool cast.
+
 ### Added
 
 - **`StubsInstaller::installFromDir($sourceDir, $stubsMap, $overwrite, $packageDeps)`** — public, reusable file-installer. Downstream addons call it from their own `install.php` / Settings handlers to push files into the user's project, reusing viterex_addon's path-baking, backup-on-overwrite, and structure-aware target resolution.
