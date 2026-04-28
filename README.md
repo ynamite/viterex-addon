@@ -74,7 +74,7 @@ Repository nach `/src/addons/viterex_addon/` (modern) bzw. `redaxo/src/addons/vi
 
 ### Was beim Installieren passiert
 
-**Nichts im Projekt-Root.** Das Addon registriert sich nur und seedet `var/data/addons/viterex/structure.json` (modern) bzw. `redaxo/data/addons/viterex/structure.json` (classic/theme) mit Default-Pfaden. Konfiguration und Bereitstellung der Projekt-Dateien läuft über das Backend (siehe nächster Abschnitt).
+**Nichts im Projekt-Root.** Das Addon registriert sich nur und seedet `var/data/addons/viterex_addon/structure.json` (modern) bzw. `redaxo/data/addons/viterex_addon/structure.json` (classic/theme) mit Default-Pfaden. Konfiguration und Bereitstellung der Projekt-Dateien läuft über das Backend (siehe nächster Abschnitt).
 
 ---
 
@@ -253,7 +253,7 @@ import { defineConfig } from 'vite'
 import tailwindcss from '@tailwindcss/vite'
 import viterex, {
   fixTailwindFullReload
-} from './public/assets/addons/viterex/viterex-vite-plugin.js'
+} from './public/assets/addons/viterex_addon/viterex-vite-plugin.js'
 
 export default defineConfig({
   plugins: [
@@ -353,11 +353,11 @@ Beide Wege sind komplementär: der Direktaufruf passt für Auto-Install in `inst
 
 ## Erweiterungs-Punkte (PHP)
 
-| Name                    | Subject                                                  | Verwendung                                                                                                                |
-| ----------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `VITEREX_BADGE`         | `array` von HTML-Strings                                 | Zusätzliche Panels im ViteRex-Badge rendern (z.B. Tailwind-Breakpoint-Indikator).                                         |
-| `VITEREX_PRELOAD`       | `array` von `<link>`-Strings                             | Custom Preload-Links einfügen (z.B. Webfonts im Dev). Parameter: `entries`, `dev`.                                        |
-| `VITEREX_INSTALL_STUBS` | `array` `{written, skipped, backedUp, gitignoreAction}`  | Eigene Dateien parallel zu ViteRex' Stubs scaffolden. Parameter: `overwrite` (bool).                                      |
+| Name                    | Subject                                                 | Verwendung                                                                           |
+| ----------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `VITEREX_BADGE`         | `array` von HTML-Strings                                | Zusätzliche Panels im ViteRex-Badge rendern (z.B. Tailwind-Breakpoint-Indikator).    |
+| `VITEREX_PRELOAD`       | `array` von `<link>`-Strings                            | Custom Preload-Links einfügen (z.B. Webfonts im Dev). Parameter: `entries`, `dev`.   |
+| `VITEREX_INSTALL_STUBS` | `array` `{written, skipped, backedUp, gitignoreAction}` | Eigene Dateien parallel zu ViteRex' Stubs scaffolden. Parameter: `overwrite` (bool). |
 
 Beispiel — eigenes Badge-Panel:
 
@@ -425,7 +425,7 @@ npm install   # einmalig
 npm run build
 ```
 
-Die `assets/`-Verzeichnis-Struktur wird mit-committet (Badge-Build + `viterex-vite-plugin.js`) und ist Teil des Releases. REDAXO kopiert beim Installieren den `assets/`-Tree automatisch nach `<frontend>/assets/addons/viterex/` — daher landet `viterex-vite-plugin.js` an der Stelle, von der die `vite.config.js` der Nutzer importiert.
+Die `assets/`-Verzeichnis-Struktur wird mit-committet (Badge-Build + `viterex-vite-plugin.js`) und ist Teil des Releases. REDAXO kopiert beim Installieren den `assets/`-Tree automatisch nach `<frontend>/assets/addons/viterex_addon/` — daher landet `viterex-vite-plugin.js` an der Stelle, von der die `vite.config.js` der Nutzer importiert.
 
 ---
 

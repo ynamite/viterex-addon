@@ -3,14 +3,14 @@
  *
  * Shipped INSIDE the addon at `viterex-addon/assets/viterex-vite-plugin.js`.
  * Redaxo's package manager auto-copies the addon's `assets/` tree to
- * `<frontend>/assets/addons/viterex/` on every (re)install — so this file
+ * `<frontend>/assets/addons/viterex_addon/` on every (re)install — so this file
  * lands at the location the user's `vite.config.js` imports from.
  *
  * Default usage (scaffolded vite.config.js):
  *
  *   import { defineConfig } from "vite";
  *   import tailwindcss from "@tailwindcss/vite";
- *   import viterex, { fixTailwindFullReload } from "./public/assets/addons/viterex/viterex-vite-plugin.js";
+ *   import viterex, { fixTailwindFullReload } from "./public/assets/addons/viterex_addon/viterex-vite-plugin.js";
  *
  *   export default defineConfig({
  *     plugins: [tailwindcss(), fixTailwindFullReload(), viterex()],
@@ -35,8 +35,8 @@ import liveReload from "vite-plugin-live-reload";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
 const STRUCTURE_PATH_CANDIDATES = [
-	"var/data/addons/viterex/structure.json", // modern (ydeploy)
-	"redaxo/data/addons/viterex/structure.json", // classic, theme
+	"var/data/addons/viterex_addon/structure.json", // modern (ydeploy)
+	"redaxo/data/addons/viterex_addon/structure.json", // classic, theme
 ];
 
 const PLUGIN_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -56,7 +56,7 @@ function loadStructureJson(cwd = process.cwd()) {
 		}
 	}
 	throw new Error(
-		"[viterex] structure.json not found at var/data/addons/viterex/ or redaxo/data/addons/viterex/. " +
+		"[viterex] structure.json not found at var/data/addons/viterex_addon/ or redaxo/data/addons/viterex_addon/. " +
 			"Open the Redaxo backend → AddOns → ViteRex → Settings, save the form to seed it.",
 	);
 }

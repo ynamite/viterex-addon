@@ -200,7 +200,7 @@ final class StubsInstaller
     {
         $publicDir = trim(Config::get('public_dir'), '/');
         $base = $publicDir === '' ? '.' : './' . $publicDir;
-        return $base . '/assets/addons/viterex/viterex-vite-plugin.js';
+        return $base . '/assets/addons/viterex_addon/viterex-vite-plugin.js';
     }
 
     private static function mergeGitignore(): string

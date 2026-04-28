@@ -13,7 +13,7 @@
 			"!**/redaxo",
 			"!**/dist",
 			"!**/assets/addons/**/*.*",
-			"**/assets/addons/viterex/**/*.*"
+			"**/assets/addons/viterex_addon/**/*.*"
 		]
 	},
 	"assist": { "actions": { "source": { "organizeImports": "on" } } },
