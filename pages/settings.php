@@ -49,7 +49,7 @@ if (rex_post('viterex_install_stubs', 'boolean')) {
     }
 }
 
-$form = rex_config_form::factory('viterex');
+$form = rex_config_form::factory('viterex_addon');
 
 $form->addFieldset(rex_i18n::msg('viterex_section_entries'));
 

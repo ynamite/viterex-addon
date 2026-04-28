@@ -11,8 +11,8 @@ use rex_yrewrite;
 /**
  * Single source of truth for ViteRex paths and runtime config.
  *
- * Persisted via rex_config (table `rex_config`, namespace `viterex`).
- * Mirrored to a JSON cache at `rex_path::addonData('viterex', 'structure.json')`
+ * Persisted via rex_config (table `rex_config`, namespace `viterex_addon`).
+ * Mirrored to a JSON cache at `rex_path::addonData('viterex_addon', 'structure.json')`
  * that the Vite plugin reads on the Node side. All paths in the JSON are
  * relative to project root — the plugin resolves with `path.resolve(cwd, ...)`.
  */
@@ -37,12 +37,12 @@ final class Config
 
     public static function get(string $key): string
     {
-        return (string) rex_config::get('viterex', $key, self::defaultFor($key));
+        return (string) rex_config::get('viterex_addon', $key, self::defaultFor($key));
     }
 
     public static function set(string $key, string $value): void
     {
-        rex_config::set('viterex', $key, $value);
+        rex_config::set('viterex_addon', $key, $value);
         self::syncStructureJson();
     }
 
@@ -64,9 +64,9 @@ final class Config
     public static function seedDefaults(): void
     {
         foreach (self::keys() as $key) {
-            $current = rex_config::get('viterex', $key);
+            $current = rex_config::get('viterex_addon', $key);
             if ($current === null || $current === '') {
-                rex_config::set('viterex', $key, self::defaultFor($key));
+                rex_config::set('viterex_addon', $key, self::defaultFor($key));
             }
         }
         self::syncStructureJson();
@@ -140,7 +140,7 @@ final class Config
             'host_url'          => self::getHostUrl(),
         ];
         rex_file::put(
-            rex_path::addonData('viterex', 'structure.json'),
+            rex_path::addonData('viterex_addon', 'structure.json'),
             json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
         );
     }

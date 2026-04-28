@@ -28,7 +28,7 @@ The `prebuild` hook runs `scripts/sync-version.js` to mirror `package.yml` → `
 
 The hardest thing to grok is how state flows between Redaxo (PHP runtime) and Vite (Node build). Three persistence layers tie them together:
 
-1. **`rex_config('viterex', ...)`** — backend form writes here. Authoritative for all user-configurable paths. Keys are defined in `lib/Config.php::DEFAULTS` plus `refresh_globs`.
+1. **`rex_config('viterex_addon', ...)`** — backend form writes here. Authoritative for all user-configurable paths. Keys are defined in `lib/Config.php::DEFAULTS` plus `refresh_globs`.
 2. **`structure.json`** at `var/data/addons/viterex_addon/` (modern) or `redaxo/data/addons/viterex_addon/` (classic+theme) — JSON cache mirrored from `rex_config` by `Config::syncStructureJson()`. **Read by the Vite plugin on the Node side.** Both candidate paths are tried in `assets/viterex-vite-plugin.js::loadStructureJson`. Re-written on every form save and at the bottom of `pages/settings.php`.
 3. **`.vite-hot`** at project root — written by `viterex-vite-plugin.js`'s `hotFilePlugin` when the dev server binds, deleted on exit. PHP reads it (`Server::resolveDevState()`) to decide between dev URLs and built `manifest.json` URLs. **No HTTP probe fallback** — it was a 200ms-per-request perf trap; hot-file presence is the sole signal.
 
