@@ -1,5 +1,16 @@
 # Changelog
 
+## **Version 3.2.0**
+
+### Added
+
+- **`viterex:install-stubs` Symfony Console command** (`lib/Console/InstallStubsCommand.php`, registered via `console_commands:` in `package.yml`). Programmatic counterpart of the *AddOns → ViteRex → Settings → Install stubs* button — reuses the same `Ynamite\ViteRex\StubsInstaller::run()` path, so output, backups, and `VITEREX_INSTALL_STUBS` extension-point dispatch are identical. Intended for automated install flows that scaffold a project without a browser session (e.g. `create-viterex`). Default behaviour skips existing files; pass `--overwrite` to back them up (`.bak.<timestamp>`) and replace. Print `-v` for the list of written paths.
+
+  ```bash
+  php bin/console viterex:install-stubs            # write only missing files
+  php bin/console viterex:install-stubs --overwrite # backup + replace existing
+  ```
+
 ## **Version 3.1.3**
 
 ### Fixed

@@ -91,3 +91,10 @@ The release body becomes the addon description. Bump `package.yml` first, then c
 - **The `Server` class is a singleton** (`self::factory()`). It reads `.vite-hot` and the manifest in its constructor. If you mutate hot-file or manifest state mid-request and need fresh reads, you'd need to reset `self::$instance` — currently not done anywhere.
 - **`Preload` is also a singleton** with the same caveat.
 - **CSP/nonce limitation**: dev-mode `<script type="module">` tags are emitted without nonces. Strict CSP with `script-src 'self'` will block HMR. Documented in README "Known limitations".
+
+## Roadmap
+
+- **v3.3**: automatically optimize SVGs referenced from templates with either `vite-plugin-svgr` or a PHP alternative when using `Assets::inline()` with an SVG path. SVGs in CSS/JS should also be optimized via `vite-plugin-svgr` or similar.
+  SVGs uploaded to the media pool should be optimized by hooking into the `MEDIA_ADD` EP.
+
+  *Originally targeted v3.2; pushed to v3.3 because v3.2.0 shipped the `viterex:install-stubs` CLI command for create-viterex / other automated install flows.*
