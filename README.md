@@ -136,7 +136,7 @@ In beliebigen REDAXO-Templates den `REX_VITE`-Platzhalter im `<head>` ergänzen:
 </html>
 ```
 
-**Wichtig:** Wird `REX_VITE` in der gerenderten Seite _nicht_ gefunden, fügt der Output-Filter den Block automatisch vor dem ersten `</head>` ein. Du kannst den Platzhalter also auch ganz weglassen — bequem, aber explizit ist besser, wenn du Kontrolle über die Position willst.
+**Wichtig:** Der `REX_VITE`-Platzhalter wird **nur innerhalb von `<head>` und nur beim ersten Vorkommen** ersetzt. Jedes weitere `REX_VITE` — im Body, in Code-Beispielen auf Doku-Seiten, in Slice-Inhalten — bleibt unverändert als Literal-Text stehen. Wird im `<head>` gar kein `REX_VITE` gefunden, fügt der Output-Filter den Asset-Block automatisch vor dem ersten `</head>` ein. Du kannst den Platzhalter also auch ganz weglassen — bequem, aber explizit ist besser, wenn du Kontrolle über die Position willst.
 
 ### Formen
 

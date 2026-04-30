@@ -40,9 +40,10 @@ The pipeline is `boot.php` → `OutputFilter::register` → `OutputFilter::rewri
 
 - **Backend bail-out**: `OutputFilter::register` returns early on `rex::isBackend()` because the slice editor and other admin UIs render the literal string `REX_VITE`. Don't remove this guard.
 - **block_peek preview**: rendered inside a backend response, so the OUTPUT_FILTER guard skips it. `boot.php` registers a separate `BLOCK_PEEK_OUTPUT` handler with `rex_extension::LATE` that calls `OutputFilter::rewriteHtml` directly. Conditional on `block_peek` being installed; no hard dependency.
-- **Auto-insert**: if no `REX_VITE` placeholder is found anywhere, `rewriteHtml` injects the asset block before the first `</head>`. Skip this if the rendered block is empty (e.g., dev with hot-file gone but no manifest yet).
+- **Head-scoped, first-occurrence-only**: `rewriteHtml` finds the first `<head>...</head>` block and replaces only the first `REX_VITE` (or `REX_VITE[src="…"]`) inside it. Subsequent placeholders in `<head>` and any `REX_VITE` text in `<body>` (docs pages, slice content, `<code>` / `<pre>` blocks) are left as literal text. The transformation is split into a thin public `rewriteHtml()` shim that delegates to `@internal rewriteHtmlWithBlock(string, callable)` — tests target the latter with a stub block renderer (see `tests/OutputFilterTest.php`).
+- **Auto-insert**: if `<head>` exists but contains no `REX_VITE` placeholder, the asset block is injected before the closing `</head>`. Skipped if the rendered block is empty (e.g., dev with hot-file gone but no manifest yet) or if the response has no `<head>` at all.
 
-Placeholder forms: `REX_VITE` (default entries), `REX_VITE[src="x.js"]` (one), `REX_VITE[src="a.css|b.js"]` (pipe-separated). Regex uses `(?<!\w)` so `REX_VITES` etc. don't match.
+Placeholder forms: `REX_VITE` (default entries), `REX_VITE[src="x.js"]` (one), `REX_VITE[src="a.css|b.js"]` (pipe-separated). Regex uses `(?<!\w)` so `REX_VITES` etc. don't match. Multiple placeholders in `<head>` are not supported — use the pipe-separated form for multiple entries.
 
 ## Architecture: live-reload signal
 
@@ -85,6 +86,8 @@ Tagging a GitHub release triggers `.github/workflows/publish-to-redaxo.yml`:
 
 The release body becomes the addon description. Bump `package.yml` first, then commit, then tag.
 
+### Important: Always update the `CLAUDE.md`, `CHANGELOG.md`, `README.md` and run `npm run build` to sync the badge assets before tagging a release. The `package.yml` version must match the GitHub release tag. Then create a new tag and a release.
+
 ## Things to be careful about
 
 - **Don't add a new config key without updating `Config::DEFAULTS` _and_ `Config::syncStructureJson()` _and_ the `pages/settings.php` form _and_ the `lang/` files.** All four must agree.
@@ -97,4 +100,6 @@ The release body becomes the addon description. Bump `package.yml` first, then c
 - **v3.3**: automatically optimize SVGs referenced from templates with either `vite-plugin-svgr` or a PHP alternative when using `Assets::inline()` with an SVG path. SVGs in CSS/JS should also be optimized via `vite-plugin-svgr` or similar.
   SVGs uploaded to the media pool should be optimized by hooking into the `MEDIA_ADD` EP.
 
-  *Originally targeted v3.2; pushed to v3.3 because v3.2.0 shipped the `viterex:install-stubs` CLI command for create-viterex / other automated install flows.*
+  _Originally targeted v3.2; pushed to v3.3 because v3.2.0 shipped the `viterex:install-stubs` CLI command for create-viterex / other automated install flows._
+
+- **3.3**: Ydeploy helper: instead of manually editing `deploy.php`, if `ydeploy` is installed, add a backend form to edit deploy settings in a separate page or tab.

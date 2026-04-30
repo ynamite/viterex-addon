@@ -60,6 +60,10 @@ jobs:
             -x "*.DS_Store" \
             -x "*Thumbs.db" \
             -x ".editorconfig" \
+            -x "tests/*" \
+            -x "phpunit.xml.dist" \
+            -x ".phpunit.cache/*" \
+            -x "docs/superpowers/*" \
             -x "viterex.png" \
             -x "docker-compose*"
 

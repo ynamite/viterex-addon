@@ -1,5 +1,20 @@
 # Changelog
 
+## **Version 3.2.1**
+
+### Fixed
+
+- **`REX_VITE` replacement scoped to `<head>`** (`lib/OutputFilter.php`). Previously `OutputFilter::rewriteHtml` replaced every `REX_VITE` occurrence anywhere in the rendered HTML, including literal mentions inside `<code>` / `<pre>` blocks on documentation pages that themselves describe how to use `viterex_addon`. The filter now finds the first `<head>...</head>` block and replaces only the first `REX_VITE` (or `REX_VITE[src="…"]`) inside it; subsequent placeholders and any `REX_VITE` text in `<body>` are left as literal text. Auto-insert before `</head>` is unchanged.
+
+### Notes for upgraders
+
+- If you (unusually) had multiple `REX_VITE` placeholders inside `<head>` to load different entries, only the first is now replaced. Combine them via the pipe-separated form: `REX_VITE[src="src/main.css|src/main.js"]`.
+
+### Internal
+
+- **PHPUnit added** as `require-dev` (`phpunit/phpunit ^10.5`). `tests/OutputFilterTest.php` covers the head-only scoping, body-untouched behavior, multiple-in-head, auto-insert, and missing-`<head>` edge cases. Run via `composer test`. Test infrastructure (`tests/`, `phpunit.xml.dist`, `.phpunit.cache`) is excluded from the release zip via `package.yml` `installer_ignore` and the publish workflow.
+- For testability, the pure transformation in `OutputFilter` is split into a thin public `rewriteHtml()` shim that delegates to a new `@internal rewriteHtmlWithBlock(string, callable)` method. Public API and behavior at all callers (frontend `OUTPUT_FILTER`, `BLOCK_PEEK_OUTPUT`) are unchanged.
+
 ## **Version 3.2.0**
 
 ### Added

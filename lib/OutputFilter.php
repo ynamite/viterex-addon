@@ -26,50 +26,77 @@ final class OutputFilter
     }
 
     /**
-     * Pure HTML transformer. Replaces `REX_VITE[src="…"]` placeholders with the
-     * rendered asset block; if the document contains no placeholder at all, auto-inserts
-     * the block before the first `</head>`. Reusable across contexts (frontend OUTPUT_FILTER,
-     * block_peek preview, etc.).
+     * Pure HTML transformer. Replaces the **first** `REX_VITE` (or `REX_VITE[src="…"]`)
+     * placeholder inside the **first `<head>...</head>` block** with the rendered asset
+     * block. If the head contains no placeholder, the block is auto-inserted before the
+     * closing `</head>`. Body content is never rewritten — literal `REX_VITE` inside
+     * `<code>`, `<pre>`, slice text, etc. is preserved.
+     *
+     * Reusable across contexts (frontend OUTPUT_FILTER, block_peek preview, etc.).
      */
     public static function rewriteHtml(string $content): string
+    {
+        return self::rewriteHtmlWithBlock($content, [Assets::class, 'renderBlock']);
+    }
+
+    /**
+     * @internal Exposed for unit testing — the public entrypoint is {@see rewriteHtml()}.
+     *
+     * @param callable(?array<int,string>): string $renderBlock Called with the parsed
+     *     entries from a `REX_VITE[src="…"]` attribute, or `null` for a bare `REX_VITE`
+     *     placeholder (use default entries) or for the auto-insert path.
+     */
+    public static function rewriteHtmlWithBlock(string $content, callable $renderBlock): string
     {
         if ($content === '') {
             return $content;
         }
 
+        if (!preg_match('/<head\b[^>]*>.*?<\/head>/is', $content, $headMatch, PREG_OFFSET_CAPTURE)) {
+            return $content;
+        }
+
+        $headStart = $headMatch[0][1];
+        $head      = $headMatch[0][0];
+        $headLen   = strlen($head);
+
         $matchCount = 0;
-        $replaced = preg_replace_callback(
+        $newHead = preg_replace_callback(
             '/(?<!\w)REX_VITE(?:\[([^\]]*)\])?/',
-            static function (array $matches): string {
+            static function (array $matches) use ($renderBlock): string {
                 $attrs = $matches[1] ?? '';
-                return Assets::renderBlock(self::parseEntries($attrs));
+                return $renderBlock(self::parseEntries($attrs));
             },
-            $content,
-            -1,
+            $head,
+            1,
             $matchCount,
         );
 
-        if ($replaced === null) {
+        if ($newHead === null) {
             return $content;
         }
 
         if ($matchCount === 0) {
-            $block = Assets::renderBlock(null);
+            $block = $renderBlock(null);
             if ($block !== '') {
-                $autoInsert = preg_replace(
+                $autoInserted = preg_replace(
                     '/<\/head>/i',
                     $block . "\n</head>",
-                    $replaced,
+                    $newHead,
                     1,
                     $autoCount,
                 );
-                if ($autoInsert !== null && $autoCount === 1) {
-                    $replaced = $autoInsert;
+                if ($autoInserted !== null && $autoCount === 1) {
+                    $newHead = $autoInserted;
                 }
             }
         }
 
-        return $replaced;
+        if ($newHead === $head) {
+            return $content;
+        }
+
+        return substr_replace($content, $newHead, $headStart, $headLen);
     }
 
     private static function parseEntries(string $attrs): ?array

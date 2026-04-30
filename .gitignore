@@ -13,6 +13,9 @@ dist/
 !/vendor/autoload.php
 composer.lock
 
+# PHPUnit
+.phpunit.cache/
+
 # Logs
 *.log
 
