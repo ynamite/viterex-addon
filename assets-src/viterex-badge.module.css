@@ -218,3 +218,9 @@
     --color: var(--color-alert);
   }
 }
+
+@media (max-width: 768px) {
+  .branch {
+    display: none;
+  }
+}

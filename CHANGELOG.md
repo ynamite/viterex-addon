@@ -1,5 +1,11 @@
 # Changelog
 
+## **Version 3.2.2**
+
+### Fixed
+
+- **Dev badge no longer overflows on mobile.** The git-branch panel inside the badge could push the total width past narrow viewports — particularly with long branch names like `feature/<descriptive-slug>`. The `.branch` panel is now `display: none` below `max-width: 768px` (`assets-src/viterex-badge.module.css`). Other badge panels (Redaxo + ViteRex version labels, stage indicator, Vite-running dot, clear-cache button) and any `VITEREX_BADGE` extension-point panels (e.g. `redaxo-massif`'s Tailwind breakpoint indicator) are unaffected. The `data-git-branch` attribute on the script tag remains present for future use (e.g. a tooltip).
+
 ## **Version 3.2.1**
 
 ### Fixed
