@@ -1,5 +1,11 @@
 # Changelog
 
+## **Version 3.2.3**
+
+### Fixed
+
+- **`viterex_addon.zip` no longer leaks into the MyREDAXO package.** The publish workflow created a `viterex_addon.zip` for the GitHub release upload, but `FriendsOfREDAXO/installer-action@1.2.0` then built its own MyREDAXO package by zipping the entire working directory (`archive.glob('**', { cwd, skip/ignore: installer_ignore + redaxo defaults })`). Redaxo's default ignore list does not include `*.zip`, so the GitHub-release zip was getting bundled into the MyREDAXO upload — a self-referential nested archive that ended up inside every install. Added `viterex_addon.zip` to `package.yml`'s `installer_ignore` list so the action's globber skips it. The GitHub-release artifact (which already used `-x "viterex_addon.zip"` in its own `zip` command) was always clean — only the MyREDAXO package was affected.
+
 ## **Version 3.2.2**
 
 ### Fixed

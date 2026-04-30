@@ -1,5 +1,5 @@
 package: viterex_addon
-version: '3.2.2'
+version: '3.2.3'
 license: MIT
 author: Yves Torres
 supportpage: https://github.com/ynamite/viterex_addon
@@ -46,3 +46,4 @@ installer_ignore:
   - phpunit.xml.dist
   - .phpunit.cache
   - docs/superpowers
+  - viterex_addon.zip
