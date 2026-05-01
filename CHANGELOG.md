@@ -1,5 +1,15 @@
 # Changelog
 
+## **Version 3.2.4**
+
+### Fixed
+
+- **Static assets attached to a CSS entry are now preloaded** (`lib/Preload.php`). When Vite emits an entry like `src/assets/css/style.css` whose manifest record has an `assets: [...]` siblings array (e.g. `@font-face` woff2 fonts referenced from CSS, or images referenced via `url()`), `Preload::walkManifestEntry` was returning early on any `.css`-extension entry — silently dropping every sibling preload tag. The early-return is meant to skip emitting a `modulepreload` for the CSS file itself (the stylesheet link is rendered by `Assets::renderBlock`), not to skip the asset loop further down. The CSS guard now scopes only the JS-only emissions (`modulepreload`, `entry.css`, `imports`/`dynamicImports` recursion); `entry.assets` runs for both CSS and JS entries and emits the appropriate `<link rel="preload" as="font|image|video|audio" …>` tags. Cross-entry dedup is preserved by the existing `array_unique` in `build()`. The bug only surfaced when a project shipped a standalone CSS entry whose `assets` siblings should be preloaded — JS entries that import CSS were unaffected because their fonts already surfaced via the JS chunk's own `assets` field.
+
+### Internal
+
+- **PreloadTest** (`tests/PreloadTest.php`) covers the regression plus six adjacent paths: JS modulepreload + `imports` walking, JS `css` siblings as `as=style` preload, image asset on a CSS entry, JS-entry imported asset, cross-entry dedup, and unknown-extension omission. To keep tests bootstrap-free (mirrors `OutputFilterTest`), `Preload` now exposes an `@internal` static seam `Preload::buildLinesForManifest(manifest, buildUrlPath, entries)` that the instance `build()` delegates to. Public API and behavior at all call sites (`Assets::renderBlock`, the `VITEREX_PRELOAD` extension point) are unchanged.
+
 ## **Version 3.2.3**
 
 ### Fixed

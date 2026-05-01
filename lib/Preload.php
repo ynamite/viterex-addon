@@ -30,21 +30,9 @@ final class Preload
 
     private function build(array $entries): string
     {
-        $lines = [];
-
-        if (!Server::isDevMode()) {
-            foreach ($entries as $entry) {
-                $key = trim($entry, '/');
-                if ($key === '' || !isset($this->manifest[$key])) {
-                    continue;
-                }
-                $visited = [];
-                $lines = array_merge(
-                    $lines,
-                    $this->walkManifestEntry($this->manifest[$key], $visited),
-                );
-            }
-        }
+        $lines = Server::isDevMode()
+            ? []
+            : self::buildLinesForManifest($this->manifest, $this->buildUrlPath, $entries);
 
         $extra = rex_extension::registerPoint(
             new rex_extension_point('VITEREX_PRELOAD', [], [
@@ -63,7 +51,43 @@ final class Preload
         return implode("\n", array_values(array_unique($lines)));
     }
 
-    private function walkManifestEntry(array $entry, array &$visited): array
+    /**
+     * @internal Pure helper so tests can exercise manifest walking without a Redaxo bootstrap.
+     *
+     * @param array<string,array<string,mixed>> $manifest
+     * @param list<string>                       $entries
+     *
+     * @return list<string>
+     */
+    public static function buildLinesForManifest(
+        array $manifest,
+        string $buildUrlPath,
+        array $entries,
+    ): array {
+        $base = '/' . trim($buildUrlPath, '/');
+        $lines = [];
+        foreach ($entries as $entry) {
+            if (!is_string($entry)) {
+                continue;
+            }
+            $key = trim($entry, '/');
+            if ($key === '' || !isset($manifest[$key])) {
+                continue;
+            }
+            $visited = [];
+            $lines = array_merge($lines, self::walkEntry($manifest, $manifest[$key], $base, $visited));
+        }
+        return array_values(array_unique($lines));
+    }
+
+    /**
+     * @param array<string,array<string,mixed>> $manifest
+     * @param array<string,mixed>               $entry
+     * @param array<string,bool>                $visited
+     *
+     * @return list<string>
+     */
+    private static function walkEntry(array $manifest, array $entry, string $base, array &$visited): array
     {
         $file = $entry['file'] ?? null;
         if (!is_string($file) || isset($visited[$file])) {
@@ -71,33 +95,35 @@ final class Preload
         }
         $visited[$file] = true;
 
-        // CSS-only entries: rendered via <link rel="stylesheet">; no preload needed.
-        if (strtolower(pathinfo($file, PATHINFO_EXTENSION)) === 'css') {
-            return [];
-        }
+        $isCss = strtolower(pathinfo($file, PATHINFO_EXTENSION)) === 'css';
+        $lines = [];
 
-        $lines = [$this->modulePreload($file)];
+        // CSS entries are emitted as <link rel="stylesheet"> by Assets::renderBlock();
+        // skip modulepreload + import-walking for them, but still preload sibling assets.
+        if (!$isCss) {
+            $lines[] = self::modulePreload($base, $file);
 
-        foreach (($entry['css'] ?? []) as $cssFile) {
-            if (is_string($cssFile)) {
-                $lines[] = $this->stylePreload($cssFile);
+            foreach (($entry['css'] ?? []) as $cssFile) {
+                if (is_string($cssFile)) {
+                    $lines[] = self::stylePreload($base, $cssFile);
+                }
             }
-        }
 
-        foreach (['imports', 'dynamicImports'] as $importType) {
-            foreach (($entry[$importType] ?? []) as $importKey) {
-                if (is_string($importKey) && isset($this->manifest[$importKey])) {
-                    $lines = array_merge(
-                        $lines,
-                        $this->walkManifestEntry($this->manifest[$importKey], $visited),
-                    );
+            foreach (['imports', 'dynamicImports'] as $importType) {
+                foreach (($entry[$importType] ?? []) as $importKey) {
+                    if (is_string($importKey) && isset($manifest[$importKey])) {
+                        $lines = array_merge(
+                            $lines,
+                            self::walkEntry($manifest, $manifest[$importKey], $base, $visited),
+                        );
+                    }
                 }
             }
         }
 
         foreach (($entry['assets'] ?? []) as $asset) {
             if (is_string($asset)) {
-                $preload = $this->assetPreload($asset);
+                $preload = self::assetPreload($base, $asset);
                 if ($preload !== null) {
                     $lines[] = $preload;
                 }
@@ -107,19 +133,19 @@ final class Preload
         return $lines;
     }
 
-    private function modulePreload(string $file): string
+    private static function modulePreload(string $base, string $file): string
     {
-        return '<link rel="modulepreload" href="' . htmlspecialchars($this->url($file)) . '">';
+        return '<link rel="modulepreload" href="' . htmlspecialchars(self::url($base, $file)) . '">';
     }
 
-    private function stylePreload(string $file): string
+    private static function stylePreload(string $base, string $file): string
     {
-        return '<link rel="preload" href="' . htmlspecialchars($this->url($file)) . '" as="style">';
+        return '<link rel="preload" href="' . htmlspecialchars(self::url($base, $file)) . '" as="style">';
     }
 
-    private function assetPreload(string $asset): ?string
+    private static function assetPreload(string $base, string $asset): ?string
     {
-        $url = $this->url($asset);
+        $url = self::url($base, $asset);
         $ext = strtolower(pathinfo($asset, PATHINFO_EXTENSION));
         return match (true) {
             in_array($ext, ['woff2', 'woff', 'ttf', 'otf'], true)
@@ -136,8 +162,8 @@ final class Preload
         };
     }
 
-    private function url(string $file): string
+    private static function url(string $base, string $file): string
     {
-        return $this->buildUrlPath . '/' . ltrim($file, '/');
+        return $base . '/' . ltrim($file, '/');
     }
 }
