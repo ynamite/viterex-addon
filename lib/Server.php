@@ -3,6 +3,7 @@
 namespace Ynamite\ViteRex;
 
 use rex;
+use rex_addon;
 use rex_file;
 use rex_path;
 use rex_ydeploy;
@@ -44,6 +45,9 @@ final class Server
 
     public static function isProductionDeployment(): bool
     {
+        if (!rex_addon::get('ydeploy')->isAvailable()) {
+            return false;
+        }
         $ydeploy = rex_ydeploy::factory();
         if ($ydeploy->isDeployed()) {
             return str_starts_with(strtolower($ydeploy->getStage()), 'prod');
@@ -53,6 +57,9 @@ final class Server
 
     public static function isStagingDeployment(): bool
     {
+        if (!rex_addon::get('ydeploy')->isAvailable()) {
+            return false;
+        }
         $ydeploy = rex_ydeploy::factory();
         if ($ydeploy->isDeployed()) {
             return str_starts_with(strtolower($ydeploy->getStage()), 'stage');

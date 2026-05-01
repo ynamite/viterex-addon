@@ -1,5 +1,11 @@
 # Changelog
 
+## **Version 3.2.5**
+
+### Fixed
+
+- **`Server::isProductionDeployment()` and `Server::isStagingDeployment()` no longer fatal without `ydeploy`** (`lib/Server.php`). Both methods called `rex_ydeploy::factory()` directly with no class-availability guard, so any project that installed `viterex_addon` without `ydeploy` got `Class "rex_ydeploy" not found` on the first call. The most visible victim was the backend dev-badge gate at `boot.php:113` (every backend page load with a logged-in user), but the same crash also fired from `Server::__construct → checkDebugMode()` — meaning every `Server::factory()` call from `OutputFilter`, `Preload`, `Assets`, and `Badge::get()` was affected. Both methods now early-return `false` when `rex_addon::get('ydeploy')->isAvailable()` is false, matching the behavior already documented in `CLAUDE.md` and the convention used at `boot.php:97` (`YREWRITE_SEO_TAGS` registration). With the guard pushed to the source, the call site at `boot.php:113` no longer needs its own ydeploy check, and future callers don't have to know about the dependency. `getDeploymentStage()` continues to fall through to `'dev'` when neither flag is true — unchanged behavior, now actually reachable on ydeploy-less installs.
+
 ## **Version 3.2.4**
 
 ### Fixed
