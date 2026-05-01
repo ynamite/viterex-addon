@@ -36,3 +36,4 @@ var/data/core/config.yml
 var/log/*
 public/media/*
 !public/media/.redaxo
+public/assets/addons/tinymce/generated/*
