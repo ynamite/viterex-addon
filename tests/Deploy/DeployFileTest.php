@@ -141,7 +141,7 @@ final class DeployFileTest extends TestCase
 
     // --- rewrite: first-time activation ---
 
-    public function testRewriteReplacesPrologueAndHostBlockWithMarkerRegion(): void
+    public function testRewriteReplacesHostChainAndPreservesEverythingElse(): void
     {
         $orig = $this->fixture('single-host.php');
         $extracted = DeployFile::extract($orig);
@@ -155,18 +155,21 @@ final class DeployFileTest extends TestCase
         // sidecar require + foreach block present
         $this->assertStringContainsString("\$cfg = require __DIR__ . '/deploy.config.php';", $rewritten);
         $this->assertStringContainsString('foreach ($cfg[\'hosts\'] as $h)', $rewritten);
-        // user code below the host block must survive (the custom task)
-        $this->assertStringContainsString("task('custom:hello'", $rewritten);
-        // prologue assignments removed
-        $this->assertStringNotContainsString('$deploymentName =', $rewritten);
-        $this->assertStringNotContainsString('$deploymentHost =', $rewritten);
-        // first-host chain removed
-        $this->assertStringNotContainsString('->setHostname($deploymentHost)', $rewritten);
-        // require above the marker region preserved
+        // user code OUTSIDE the host chain survives:
+        // - prologue $deployment* vars (orphaned but preserved)
+        $this->assertStringContainsString('$deploymentName =', $rewritten);
+        $this->assertStringContainsString('$deploymentHost =', $rewritten);
+        // - require above the host chain (real-world layout)
         $this->assertStringContainsString("require __DIR__ . '/src/addons/ydeploy/deploy.php';", $rewritten);
+        // - user's set('repository', $deploymentRepository) above (overridden by marker block at runtime)
+        $this->assertStringContainsString("set('repository', \$deploymentRepository);", $rewritten);
+        // - custom task below
+        $this->assertStringContainsString("task('custom:hello'", $rewritten);
+        // host chain itself removed
+        $this->assertStringNotContainsString('->setHostname($deploymentHost)', $rewritten);
     }
 
-    public function testRewriteReplacesPrologueAndAllHostBlocksForMultiHost(): void
+    public function testRewriteReplacesAllHostChainsForMultiHost(): void
     {
         $orig = $this->fixture('multi-host.php');
         $extracted = DeployFile::extract($orig);
@@ -180,6 +183,9 @@ final class DeployFileTest extends TestCase
         $this->assertStringNotContainsString("host('prod')", $rewritten);
         // exactly one foreach block injected
         $this->assertSame(1, substr_count($rewritten, 'foreach ($cfg[\'hosts\']'));
+        // prologue + user set survive
+        $this->assertStringContainsString('$deploymentName =', $rewritten);
+        $this->assertStringContainsString("set('repository', \$deploymentRepository);", $rewritten);
     }
 
     public function testRewriteReturnsUnchangedWhenNoMarkersAndNoExtractable(): void

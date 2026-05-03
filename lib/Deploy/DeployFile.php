@@ -391,7 +391,7 @@ final class DeployFile
         if ($extracted === null) {
             return $contents;
         }
-        $range = self::locatePrologueHostRange($contents);
+        $range = self::locateHostChainRange($contents);
         if ($range === null) {
             return $contents;
         }
@@ -431,24 +431,24 @@ final class DeployFile
     }
 
     /**
-     * Locate the byte range covering: from the first $deployment* assignment
-     * through the closing ';' of the last recognized host(...)->...->setDeployPath();
-     * chain. Both bounds are byte offsets in $contents; $endByte is exclusive
-     * (ready for substr-replace).
+     * Locate the byte range covering: from the first `host(` token through the
+     * byte after the closing `;` of the LAST recognized `host(...)->...` chain.
+     * Both bounds are byte offsets in $contents; $endByte is exclusive (ready
+     * for substr-replace).
      *
-     * Anything between/after the chains (e.g., a `set('repository', ...)` call,
-     * `add('shared_dirs', ...)`, etc.) is INCLUDED in the replaced range — that
-     * was always going to be regenerated from the sidecar's foreach.
+     * Anything outside this range — including the $deployment* prologue, any
+     * `require` calls, `set('repository', ...)` calls, custom `task(...)` /
+     * `before(...)` definitions, etc. — is left untouched. The orphaned
+     * prologue is harmless dead code after activation.
      *
      * @return array{0:int,1:int}|null
      */
-    private static function locatePrologueHostRange(string $contents): ?array
+    private static function locateHostChainRange(string $contents): ?array
     {
         $tokens = @token_get_all($contents);
         if (!is_array($tokens) || count($tokens) === 0) {
             return null;
         }
-        // map each significant token to its absolute byte offset
         $offsets = self::computeTokenOffsets($contents, $tokens);
         $sig = [];
         foreach ($tokens as $i => $tok) {
@@ -462,27 +462,14 @@ final class DeployFile
         $n = count($sig);
         for ($i = 0; $i < $n - 3; $i++) {
             $a = $sig[$i]['tok'];
-            if (is_array($a) && $a[0] === T_VARIABLE && isset(self::PROLOGUE_VAR_MAP[ltrim($a[1], '$')])
-                && ($sig[$i + 1]['tok'] ?? null) === '='
-                && is_array($sig[$i + 2]['tok']) && $sig[$i + 2]['tok'][0] === T_CONSTANT_ENCAPSED_STRING
-                && ($sig[$i + 3]['tok'] ?? null) === ';'
-            ) {
-                if ($startByte === null) {
-                    $startByte = $sig[$i]['byte'];
-                }
-            }
-        }
-        // find the last host(...)->...; chain end byte
-        for ($i = 0; $i < $n - 3; $i++) {
-            $a = $sig[$i]['tok'];
+            // looking for: T_STRING("host") '('
             if (!is_array($a) || $a[0] !== T_STRING || $a[1] !== 'host') {
                 continue;
             }
             if (($sig[$i + 1]['tok'] ?? null) !== '(') {
                 continue;
             }
-            // walk to next ';' at the same parenthesis depth (depth 0 outside the
-            // initial host(...) since after that we're in a method chain)
+            // walk to next ';' at the same parenthesis depth
             $j = $i + 1;
             $depth = 0;
             $chainEndIdx = null;
@@ -497,10 +484,12 @@ final class DeployFile
                 $j++;
             }
             if ($chainEndIdx !== null) {
-                // include the ';' itself: byte of token + length
-                $semicolonByte = $sig[$chainEndIdx]['byte'] + 1;
-                $endByte = $semicolonByte;
-                $i = $chainEndIdx; // skip past this chain
+                if ($startByte === null) {
+                    $startByte = $sig[$i]['byte'];
+                }
+                // include the ';' itself: byte of token + 1
+                $endByte = $sig[$chainEndIdx]['byte'] + 1;
+                $i = $chainEndIdx;
             }
         }
         if ($startByte === null || $endByte === null) {
