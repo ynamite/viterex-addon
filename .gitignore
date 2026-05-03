@@ -16,6 +16,9 @@ composer.lock
 # PHPUnit
 .phpunit.cache/
 
+# git worktrees
+.worktrees/
+
 # Logs
 *.log
 
