@@ -238,4 +238,35 @@ final class DeployFileTest extends TestCase
         $this->assertFalse(DeployFile::hasMarkers($contents));
         $this->assertSame($contents, DeployFile::rewrite($contents, DeployFile::extract($contents)));
     }
+
+    public function testExtractIgnoresNestedHostCall(): void
+    {
+        // host('local') inside on(...) is NOT a top-level host chain.
+        // Only the real host($deploymentName)->... chain at the bottom counts.
+        $cfg = DeployFile::extract($this->fixture('nested-host-call.php'));
+
+        $this->assertNotNull($cfg);
+        $this->assertCount(1, $cfg['hosts']);
+        $this->assertSame('staging', $cfg['hosts'][0]['name']);
+    }
+
+    public function testRewritePreservesTaskBodyContainingNestedHostCall(): void
+    {
+        $orig = $this->fixture('nested-host-call.php');
+        $extracted = DeployFile::extract($orig);
+        $this->assertNotNull($extracted);
+
+        $rewritten = DeployFile::rewrite($orig, $extracted);
+
+        // marker injected
+        $this->assertStringContainsString(DeployFile::MARKER_OPEN, $rewritten);
+        // The task('build:vendors', ...) body must survive intact, including
+        // its nested host('local') reference.
+        $this->assertStringContainsString("task('build:vendors'", $rewritten);
+        $this->assertStringContainsString("on(", $rewritten);
+        $this->assertStringContainsString("host('local')", $rewritten);
+        $this->assertStringContainsString("run('echo hi')", $rewritten);
+        // The real host chain is gone.
+        $this->assertStringNotContainsString('->setHostname($deploymentHost)', $rewritten);
+    }
 }

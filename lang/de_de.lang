@@ -74,3 +74,5 @@ viterex_deploy_rewrite_failed = <code>deploy.php</code> konnte nicht sicher umge
 viterex_deploy_write_failed = Schreiben in <code>deploy.php</code> fehlgeschlagen. Bitte Dateirechte im Projekt-Root prüfen.
 viterex_deploy_saved = Deploy-Hosts in <code>deploy.config.php</code> gespeichert.
 viterex_deploy_activated = <code>deploy.php</code> wurde so umgeschrieben, dass es das Sidecar verwendet. Backup unter <code>{0}</code>.
+viterex_deploy_add_host_button = Host hinzufügen
+viterex_deploy_remove_host_button = Entfernen

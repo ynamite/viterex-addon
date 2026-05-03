@@ -54,9 +54,46 @@ if (rex_post('viterex_deploy_activate', 'boolean')) {
     }
 }
 
+// --- POST: Add or Remove host ---
+$mutateAction = null;
+if (rex_post('viterex_deploy_add_host', 'boolean')) {
+    $mutateAction = 'add';
+} elseif (($removeIdx = rex_post('viterex_deploy_remove_host', 'int', -1)) >= 0) {
+    $mutateAction = 'remove';
+}
+if ($mutateAction !== null) {
+    if (!$csrf->isValid()) {
+        echo rex_view::error(rex_i18n::msg('csrf_token_invalid'));
+    } else {
+        $rawHosts = rex_post('hosts', 'array', []);
+        $formCfg = [
+            'repository' => rex_post('repository', 'string'),
+            'hosts' => array_values($rawHosts),
+        ];
+        if ($mutateAction === 'add') {
+            $formCfg['hosts'][] = [
+                'name' => '', 'hostname' => '', 'port' => '22',
+                'user' => '', 'stage' => '', 'path' => '',
+            ];
+        } else {
+            unset($formCfg['hosts'][$removeIdx]);
+            $formCfg['hosts'] = array_values($formCfg['hosts']);
+            if (count($formCfg['hosts']) === 0) {
+                // never let the user end up with zero rows
+                $formCfg['hosts'][] = [
+                    'name' => '', 'hostname' => '', 'port' => '22',
+                    'user' => '', 'stage' => '', 'path' => '',
+                ];
+            }
+        }
+    }
+}
+
 // --- POST: Save form ---
-$formCfg = null;
 $formErrors = [];
+if (!isset($formCfg)) {
+    $formCfg = null;
+}
 if (rex_post('viterex_deploy_save', 'boolean')) {
     if (!$csrf->isValid()) {
         echo rex_view::error(rex_i18n::msg('csrf_token_invalid'));
@@ -119,28 +156,53 @@ if ($state === Page::STATE_NEEDS_ACTIVATION) {
 $action = rex_url::currentBackendPage();
 $csrfFields = $csrf->getHiddenField();
 
-$repositoryHtml = '<input type="text" name="repository" class="form-control" value="'
-    . rex_escape((string) $formCfg['repository']) . '">';
+$repositoryHtml = '<div class="form-group">'
+    . '<label for="viterex-deploy-repository">' . rex_escape(rex_i18n::msg('viterex_deploy_field_repository')) . '</label>'
+    . '<input type="text" id="viterex-deploy-repository" name="repository" class="form-control" value="'
+    . rex_escape((string) $formCfg['repository']) . '">'
+    . '</div>';
+
+$hostFieldOrder = ['name', 'hostname', 'port', 'user', 'stage', 'path'];
 
 $hostRows = '';
 foreach ($formCfg['hosts'] as $i => $h) {
-    $hostRows .= '<fieldset style="margin-bottom:1rem;border:1px solid #ddd;padding:.5rem 1rem;">';
-    $hostRows .= '<legend>' . rex_i18n::msg('viterex_deploy_host_n') . ' ' . ($i + 1) . '</legend>';
-    foreach (['name', 'hostname', 'port', 'user', 'stage', 'path'] as $field) {
+    $headerLabel = rex_escape(rex_i18n::msg('viterex_deploy_host_n')) . ' ' . ($i + 1);
+    $hostRows .= '<fieldset class="rex-form" style="margin-bottom:1.5rem;border:1px solid #ddd;padding:1rem;">';
+    $hostRows .= '<legend style="width:auto;padding:0 .5rem;font-size:1em;">' . $headerLabel
+        . ' <button type="submit" name="viterex_deploy_remove_host" value="' . (int) $i
+        . '" class="btn btn-xs btn-default" style="margin-left:.5rem;"'
+        . ' formnovalidate>'
+        . '<i class="rex-icon fa-trash"></i> ' . rex_escape(rex_i18n::msg('viterex_deploy_remove_host_button'))
+        . '</button></legend>';
+    $hostRows .= '<div class="row">';
+    foreach ($hostFieldOrder as $field) {
         $val = (string) ($h[$field] ?? '');
         $label = rex_i18n::msg('viterex_deploy_field_' . $field);
-        $hostRows .= '<label>' . rex_escape($label)
-            . ' <input type="text" name="hosts[' . $i . '][' . $field . ']" value="' . rex_escape($val) . '" class="form-control"></label>';
+        $inputId = 'viterex-deploy-host-' . $i . '-' . $field;
+        $hostRows .= '<div class="col-sm-6 col-md-4">'
+            . '<div class="form-group">'
+            . '<label for="' . $inputId . '">' . rex_escape($label) . '</label>'
+            . '<input type="text" id="' . $inputId
+            . '" name="hosts[' . $i . '][' . $field . ']" value="' . rex_escape($val)
+            . '" class="form-control">'
+            . '</div></div>';
     }
-    $hostRows .= '</fieldset>';
+    $hostRows .= '</div></fieldset>';
 }
 
+$addHostBtn = '<button type="submit" name="viterex_deploy_add_host" value="1"'
+    . ' class="btn btn-default" formnovalidate>'
+    . '<i class="rex-icon fa-plus"></i> ' . rex_escape(rex_i18n::msg('viterex_deploy_add_host_button'))
+    . '</button>';
+
+$saveBtn = '<button type="submit" name="viterex_deploy_save" value="1" class="btn btn-save">'
+    . rex_escape(rex_i18n::msg('viterex_deploy_save_button')) . '</button>';
+
 $content = '<form action="' . $action . '" method="post">' . $csrfFields
-    . '<input type="hidden" name="viterex_deploy_save" value="1">'
-    . '<div class="form-group"><label>' . rex_escape(rex_i18n::msg('viterex_deploy_field_repository'))
-    . '</label>' . $repositoryHtml . '</div>'
+    . $repositoryHtml
     . $hostRows
-    . '<button type="submit" class="btn btn-save">' . rex_i18n::msg('viterex_deploy_save_button') . '</button>'
+    . '<div style="margin-bottom:1rem;">' . $addHostBtn . '</div>'
+    . $saveBtn
     . '</form>';
 
 $fragment = new rex_fragment();

@@ -136,6 +136,22 @@ final class DeployFile
      * @param array<string,string> $prologue
      * @return list<array{name: string, hostname: string, port: int|null, user: string, stage: string, path: string}>
      */
+    /**
+     * True if the token at $sigIdx in $sig is at a statement-start position —
+     * i.e., the previous significant token is `;`, `{`, `}`, or there is no
+     * previous significant token.
+     *
+     * @param list<array{orig_index:int, tok: mixed}|array{orig_index:int, tok:mixed, byte:int}> $sig
+     */
+    private static function isStatementStart(array $sig, int $sigIdx): bool
+    {
+        if ($sigIdx === 0) {
+            return true;
+        }
+        $prev = $sig[$sigIdx - 1]['tok'];
+        return $prev === ';' || $prev === '{' || $prev === '}';
+    }
+
     private static function extractHosts(array $sig, array $prologue): array
     {
         $hosts = [];
@@ -146,6 +162,11 @@ final class DeployFile
             $b = $sig[$i + 1]['tok'];
             // looking for: T_STRING("host") '('
             if (!is_array($a) || $a[0] !== T_STRING || $a[1] !== 'host' || $b !== '(') {
+                $i++;
+                continue;
+            }
+            // only treat as a top-level host chain if at statement-start position
+            if (!self::isStatementStart($sig, $i)) {
                 $i++;
                 continue;
             }
@@ -467,6 +488,10 @@ final class DeployFile
                 continue;
             }
             if (($sig[$i + 1]['tok'] ?? null) !== '(') {
+                continue;
+            }
+            // only treat as a top-level host chain if at statement-start position
+            if (!self::isStatementStart($sig, $i)) {
                 continue;
             }
             // walk to next ';' at the same parenthesis depth
