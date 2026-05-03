@@ -138,4 +138,55 @@ final class DeployFileTest extends TestCase
         $this->assertNotNull($cfg);
         $this->assertSame('staging', $cfg['hosts'][0]['name']);
     }
+
+    // --- rewrite: first-time activation ---
+
+    public function testRewriteReplacesPrologueAndHostBlockWithMarkerRegion(): void
+    {
+        $orig = $this->fixture('single-host.php');
+        $extracted = DeployFile::extract($orig);
+        $this->assertNotNull($extracted);
+
+        $rewritten = DeployFile::rewrite($orig, $extracted);
+
+        // marker region present
+        $this->assertStringContainsString(DeployFile::MARKER_OPEN, $rewritten);
+        $this->assertStringContainsString(DeployFile::MARKER_CLOSE, $rewritten);
+        // sidecar require + foreach block present
+        $this->assertStringContainsString("\$cfg = require __DIR__ . '/deploy.config.php';", $rewritten);
+        $this->assertStringContainsString('foreach ($cfg[\'hosts\'] as $h)', $rewritten);
+        // user code below the host block must survive (the custom task)
+        $this->assertStringContainsString("task('custom:hello'", $rewritten);
+        // prologue assignments removed
+        $this->assertStringNotContainsString('$deploymentName =', $rewritten);
+        $this->assertStringNotContainsString('$deploymentHost =', $rewritten);
+        // first-host chain removed
+        $this->assertStringNotContainsString('->setHostname($deploymentHost)', $rewritten);
+        // require above the marker region preserved
+        $this->assertStringContainsString("require __DIR__ . '/src/addons/ydeploy/deploy.php';", $rewritten);
+    }
+
+    public function testRewriteReplacesPrologueAndAllHostBlocksForMultiHost(): void
+    {
+        $orig = $this->fixture('multi-host.php');
+        $extracted = DeployFile::extract($orig);
+        $this->assertNotNull($extracted);
+
+        $rewritten = DeployFile::rewrite($orig, $extracted);
+
+        $this->assertStringContainsString(DeployFile::MARKER_OPEN, $rewritten);
+        // both original host chains removed
+        $this->assertStringNotContainsString("host(\$deploymentName)", $rewritten);
+        $this->assertStringNotContainsString("host('prod')", $rewritten);
+        // exactly one foreach block injected
+        $this->assertSame(1, substr_count($rewritten, 'foreach ($cfg[\'hosts\']'));
+    }
+
+    public function testRewriteReturnsUnchangedWhenNoMarkersAndNoExtractable(): void
+    {
+        // file with neither markers nor a recognizable prologue+host shape
+        // → rewrite has nothing to do; returns input unchanged
+        $contents = $this->fixture('bare-php.php');
+        $this->assertSame($contents, DeployFile::rewrite($contents, null));
+    }
 }

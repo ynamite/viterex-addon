@@ -371,4 +371,160 @@ final class DeployFile
             'path' => (string) $collected['path'],
         ];
     }
+
+    /**
+     * Produce new file contents with viterex's marker region in place.
+     *
+     * - If both markers are present → replace the region between them.
+     * - Else, if extraction succeeds → find the byte range from the first
+     *   prologue assignment through the last host(...) chain semicolon, and
+     *   replace that range with the marker region.
+     * - Else (no markers, nothing extractable) → return contents unchanged.
+     *
+     * @param array{repository: string, hosts: list<array<string,mixed>>}|null $extracted
+     */
+    public static function rewrite(string $contents, ?array $extracted): string
+    {
+        if (self::hasMarkers($contents)) {
+            return self::replaceMarkerRegion($contents);
+        }
+        if ($extracted === null) {
+            return $contents;
+        }
+        $range = self::locatePrologueHostRange($contents);
+        if ($range === null) {
+            return $contents;
+        }
+        [$startByte, $endByte] = $range;
+        return substr($contents, 0, $startByte)
+            . self::renderMarkerRegion()
+            . substr($contents, $endByte);
+    }
+
+    private static function renderMarkerRegion(): string
+    {
+        return self::MARKER_OPEN . "\n"
+            . "\$cfg = require __DIR__ . '/deploy.config.php';\n"
+            . "set('repository', \$cfg['repository']);\n"
+            . "foreach (\$cfg['hosts'] as \$h) {\n"
+            . "    host(\$h['name'])\n"
+            . "        ->setHostname(\$h['hostname'])\n"
+            . "        ->setRemoteUser(\$h['user'])\n"
+            . "        ->setPort(\$h['port'])\n"
+            . "        ->set('labels', ['stage' => \$h['stage']])\n"
+            . "        ->setDeployPath(\$h['path']);\n"
+            . "}\n"
+            . self::MARKER_CLOSE;
+    }
+
+    private static function replaceMarkerRegion(string $contents): string
+    {
+        $openPos = strpos($contents, self::MARKER_OPEN);
+        $closePos = strpos($contents, self::MARKER_CLOSE);
+        if ($openPos === false || $closePos === false || $closePos < $openPos) {
+            return $contents;
+        }
+        $endByte = $closePos + strlen(self::MARKER_CLOSE);
+        return substr($contents, 0, $openPos)
+            . self::renderMarkerRegion()
+            . substr($contents, $endByte);
+    }
+
+    /**
+     * Locate the byte range covering: from the first $deployment* assignment
+     * through the closing ';' of the last recognized host(...)->...->setDeployPath();
+     * chain. Both bounds are byte offsets in $contents; $endByte is exclusive
+     * (ready for substr-replace).
+     *
+     * Anything between/after the chains (e.g., a `set('repository', ...)` call,
+     * `add('shared_dirs', ...)`, etc.) is INCLUDED in the replaced range — that
+     * was always going to be regenerated from the sidecar's foreach.
+     *
+     * @return array{0:int,1:int}|null
+     */
+    private static function locatePrologueHostRange(string $contents): ?array
+    {
+        $tokens = @token_get_all($contents);
+        if (!is_array($tokens) || count($tokens) === 0) {
+            return null;
+        }
+        // map each significant token to its absolute byte offset
+        $offsets = self::computeTokenOffsets($contents, $tokens);
+        $sig = [];
+        foreach ($tokens as $i => $tok) {
+            if (is_array($tok) && in_array($tok[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT, T_OPEN_TAG, T_INLINE_HTML], true)) {
+                continue;
+            }
+            $sig[] = ['orig_index' => $i, 'tok' => $tok, 'byte' => $offsets[$i]];
+        }
+        $startByte = null;
+        $endByte = null;
+        $n = count($sig);
+        for ($i = 0; $i < $n - 3; $i++) {
+            $a = $sig[$i]['tok'];
+            if (is_array($a) && $a[0] === T_VARIABLE && isset(self::PROLOGUE_VAR_MAP[ltrim($a[1], '$')])
+                && ($sig[$i + 1]['tok'] ?? null) === '='
+                && is_array($sig[$i + 2]['tok']) && $sig[$i + 2]['tok'][0] === T_CONSTANT_ENCAPSED_STRING
+                && ($sig[$i + 3]['tok'] ?? null) === ';'
+            ) {
+                if ($startByte === null) {
+                    $startByte = $sig[$i]['byte'];
+                }
+            }
+        }
+        // find the last host(...)->...; chain end byte
+        for ($i = 0; $i < $n - 3; $i++) {
+            $a = $sig[$i]['tok'];
+            if (!is_array($a) || $a[0] !== T_STRING || $a[1] !== 'host') {
+                continue;
+            }
+            if (($sig[$i + 1]['tok'] ?? null) !== '(') {
+                continue;
+            }
+            // walk to next ';' at the same parenthesis depth (depth 0 outside the
+            // initial host(...) since after that we're in a method chain)
+            $j = $i + 1;
+            $depth = 0;
+            $chainEndIdx = null;
+            while ($j < $n) {
+                $t = $sig[$j]['tok'];
+                if ($t === '(' || $t === '[') $depth++;
+                elseif ($t === ')' || $t === ']') $depth--;
+                elseif ($t === ';' && $depth === 0) {
+                    $chainEndIdx = $j;
+                    break;
+                }
+                $j++;
+            }
+            if ($chainEndIdx !== null) {
+                // include the ';' itself: byte of token + length
+                $semicolonByte = $sig[$chainEndIdx]['byte'] + 1;
+                $endByte = $semicolonByte;
+                $i = $chainEndIdx; // skip past this chain
+            }
+        }
+        if ($startByte === null || $endByte === null) {
+            return null;
+        }
+        return [$startByte, $endByte];
+    }
+
+    /**
+     * Compute the byte offset of each token in the original source. Tokens
+     * returned by token_get_all are in source order; we sum widths.
+     *
+     * @param list<array{0:int,1:string,2:int}|string> $tokens
+     * @return array<int,int> map index → byte offset
+     */
+    private static function computeTokenOffsets(string $contents, array $tokens): array
+    {
+        $offsets = [];
+        $byte = 0;
+        foreach ($tokens as $i => $tok) {
+            $offsets[$i] = $byte;
+            $text = is_array($tok) ? $tok[1] : $tok;
+            $byte += strlen($text);
+        }
+        return $offsets;
+    }
 }

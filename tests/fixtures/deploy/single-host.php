@@ -6,6 +6,8 @@ if ('cli' !== PHP_SAPI) {
     throw new \Exception('CLI only.');
 }
 
+require __DIR__ . '/src/addons/ydeploy/deploy.php';
+
 $deploymentName = 'staging';
 $deploymentHost = 'example.com';
 $deploymentPort = '22';
@@ -13,8 +15,6 @@ $deploymentUser = 'webuser';
 $deploymentType = 'stage';
 $deploymentPath = '/var/www/staging';
 $deploymentRepository = 'git@github.com:user/repo.git';
-
-require __DIR__ . '/src/addons/ydeploy/deploy.php';
 
 set('repository', $deploymentRepository);
 
