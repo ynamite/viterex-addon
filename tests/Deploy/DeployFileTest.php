@@ -92,4 +92,50 @@ final class DeployFileTest extends TestCase
         $this->assertSame('prod', $cfg['hosts'][1]['stage']);
         $this->assertSame('/var/www/prod', $cfg['hosts'][1]['path']);
     }
+
+    // --- extract: null cases ---
+
+    public function testExtractReturnsNullForPrologueWithoutHost(): void
+    {
+        $this->assertNull(DeployFile::extract($this->fixture('prologue-no-host.php')));
+    }
+
+    public function testExtractReturnsNullForBareFile(): void
+    {
+        $this->assertNull(DeployFile::extract($this->fixture('bare-php.php')));
+    }
+
+    public function testExtractReturnsNullForUnrecognizedHostChain(): void
+    {
+        // file uses ->set('hostname', ...) instead of ->setHostname(...)
+        // → hostname not collected → host doesn't meet minimum → not added
+        $this->assertNull(DeployFile::extract($this->fixture('unrecognized-host-chain.php')));
+    }
+
+    public function testExtractReturnsNullForSyntacticallyInvalidFile(): void
+    {
+        // PHP < 8 returned partial tokens for invalid PHP; on 8+ token_get_all
+        // raises a parse warning but still returns tokens for the valid prefix.
+        // Either way, this fixture has no recognizable prologue/hosts → null.
+        $contents = "<?php this is not valid php at all !@#";
+        $this->assertNull(@DeployFile::extract($contents));
+    }
+
+    // --- extract: source-encoding edge cases ---
+
+    public function testExtractHandlesCrlfLineEndings(): void
+    {
+        $contents = str_replace("\n", "\r\n", $this->fixture('single-host.php'));
+        $cfg = DeployFile::extract($contents);
+        $this->assertNotNull($cfg);
+        $this->assertSame('staging', $cfg['hosts'][0]['name']);
+    }
+
+    public function testExtractHandlesLeadingBom(): void
+    {
+        $contents = "\xEF\xBB\xBF" . $this->fixture('single-host.php');
+        $cfg = DeployFile::extract($contents);
+        $this->assertNotNull($cfg);
+        $this->assertSame('staging', $cfg['hosts'][0]['name']);
+    }
 }
