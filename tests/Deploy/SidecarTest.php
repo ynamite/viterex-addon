@@ -95,4 +95,65 @@ final class SidecarTest extends TestCase
         $cfg = Sidecar::load($this->tmpPath());
         $this->assertNull($cfg['hosts'][0]['port']);
     }
+
+    public function testSaveWritesValidPhpThatLoadsBackToSameArray(): void
+    {
+        $cfg = [
+            'repository' => 'git@example.com:u/r.git',
+            'hosts' => [
+                ['name' => 'stage', 'hostname' => 'h1', 'port' => 22, 'user' => 'u1', 'stage' => 'stage', 'path' => '/p1'],
+                ['name' => 'prod',  'hostname' => 'h2', 'port' => null, 'user' => 'u2', 'stage' => 'prod',  'path' => '/p2'],
+            ],
+        ];
+
+        Sidecar::save($this->tmpPath(), $cfg);
+
+        $loaded = Sidecar::load($this->tmpPath());
+        $this->assertSame($cfg, $loaded);
+    }
+
+    public function testSaveOutputIsDeterministic(): void
+    {
+        $cfg = [
+            'repository' => 'r',
+            'hosts' => [
+                ['name' => 's', 'hostname' => 'h', 'port' => 22, 'user' => 'u', 'stage' => 's', 'path' => '/p'],
+            ],
+        ];
+
+        Sidecar::save($this->tmpPath('a.php'), $cfg);
+        Sidecar::save($this->tmpPath('b.php'), $cfg);
+
+        $this->assertSame(
+            file_get_contents($this->tmpPath('a.php')),
+            file_get_contents($this->tmpPath('b.php')),
+        );
+    }
+
+    public function testSaveBacksUpExistingFile(): void
+    {
+        file_put_contents($this->tmpPath(), "<?php return ['old' => true];");
+
+        $cfg = ['repository' => 'r', 'hosts' => [
+            ['name' => 's', 'hostname' => 'h', 'port' => 22, 'user' => 'u', 'stage' => 's', 'path' => '/p'],
+        ]];
+
+        Sidecar::save($this->tmpPath(), $cfg);
+
+        $backups = glob($this->tmpDir . '/deploy.config.php.bak.*') ?: [];
+        $this->assertCount(1, $backups);
+        $this->assertSame("<?php return ['old' => true];", file_get_contents($backups[0]));
+    }
+
+    public function testSaveDoesNotBackUpWhenNoExistingFile(): void
+    {
+        $cfg = ['repository' => 'r', 'hosts' => [
+            ['name' => 's', 'hostname' => 'h', 'port' => 22, 'user' => 'u', 'stage' => 's', 'path' => '/p'],
+        ]];
+
+        Sidecar::save($this->tmpPath(), $cfg);
+
+        $backups = glob($this->tmpDir . '/deploy.config.php.bak.*') ?: [];
+        $this->assertCount(0, $backups);
+    }
 }

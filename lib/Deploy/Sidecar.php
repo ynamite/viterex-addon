@@ -52,4 +52,57 @@ final class Sidecar
         }
         return $cfg;
     }
+
+    /**
+     * @param array{repository: string, hosts: list<array{name: string, hostname: string, port: int|null, user: string, stage: string, path: string}>} $cfg
+     */
+    public static function save(?string $path, array $cfg): void
+    {
+        $path ??= self::path();
+        if (is_file($path)) {
+            $backup = $path . '.bak.' . date('Ymd-His');
+            if (!@copy($path, $backup)) {
+                throw new \RuntimeException("Failed to back up sidecar to {$backup}");
+            }
+        }
+        if (file_put_contents($path, self::render($cfg)) === false) {
+            throw new \RuntimeException("Failed to write sidecar to {$path}");
+        }
+    }
+
+    /**
+     * @param array{repository: string, hosts: list<array<string,mixed>>} $cfg
+     */
+    private static function render(array $cfg): string
+    {
+        $out = "<?php\n\nreturn [\n";
+        $out .= '    ' . self::renderKey('repository') . ' => ' . self::renderValue($cfg['repository']) . ",\n";
+        $out .= "    'hosts' => [\n";
+        foreach ($cfg['hosts'] as $host) {
+            $out .= "        [\n";
+            foreach (self::REQUIRED_HOST_KEYS as $key) {
+                $out .= '            ' . self::renderKey($key) . ' => ' . self::renderValue($host[$key]) . ",\n";
+            }
+            $out .= "        ],\n";
+        }
+        $out .= "    ],\n];\n";
+        return $out;
+    }
+
+    private static function renderKey(string $key): string
+    {
+        return "'" . $key . "'";
+    }
+
+    private static function renderValue(mixed $value): string
+    {
+        if ($value === null) {
+            return 'null';
+        }
+        if (is_int($value)) {
+            return (string) $value;
+        }
+        // strings: single-quoted, escape backslash + single-quote
+        return "'" . strtr((string) $value, ["\\" => "\\\\", "'" => "\\'"]) . "'";
+    }
 }
