@@ -104,4 +104,26 @@ final class Page
             'errors' => [],
         ];
     }
+
+    /**
+     * Best-effort detection of the project's git remote (origin). Returns the
+     * URL string or null if no .git dir, no `origin` remote, shell_exec is
+     * disabled, or the command fails. Never throws.
+     */
+    public static function detectGitRemote(string $projectPath): ?string
+    {
+        if (!is_dir(rtrim($projectPath, '/') . '/.git')) {
+            return null;
+        }
+        if (!function_exists('shell_exec')) {
+            return null;
+        }
+        $cmd = 'cd ' . escapeshellarg($projectPath) . ' && git remote get-url origin 2>/dev/null';
+        $output = @shell_exec($cmd);
+        if (!is_string($output)) {
+            return null;
+        }
+        $url = trim($output);
+        return $url !== '' ? $url : null;
+    }
 }

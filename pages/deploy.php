@@ -134,7 +134,11 @@ $sidecar = Sidecar::load($sidecarPath);
 // Flow A: first visit, sidecar absent → auto-write from extract if possible
 if ($sidecar === null && $formCfg === null) {
     $extracted = DeployFile::extract((string) $deployContents);
+    $gitRemote = Page::detectGitRemote(rex_path::base());
     if ($extracted !== null) {
+        if ($gitRemote !== null) {
+            $extracted['repository'] = $gitRemote;
+        }
         try {
             Sidecar::save($sidecarPath, $extracted);
             $sidecar = $extracted;
@@ -148,9 +152,14 @@ if ($sidecar === null && $formCfg === null) {
 }
 
 if ($formCfg === null) {
-    $formCfg = $sidecar ?? ['repository' => '', 'hosts' => [
-        ['name' => '', 'hostname' => '', 'port' => 22, 'user' => '', 'stage' => '', 'path' => ''],
-    ]];
+    if ($sidecar !== null) {
+        $formCfg = $sidecar;
+    } else {
+        $defaultRepo = Page::detectGitRemote(rex_path::base()) ?? '';
+        $formCfg = ['repository' => $defaultRepo, 'hosts' => [
+            ['name' => '', 'hostname' => '', 'port' => 22, 'user' => '', 'stage' => '', 'path' => ''],
+        ]];
+    }
 }
 
 $state = Page::detectState($sidecar, $deployContents);
@@ -172,30 +181,48 @@ $repositoryHtml = '<div class="form-group">'
 
 $hostFieldOrder = ['name', 'hostname', 'port', 'user', 'stage', 'path'];
 
+$stageDatalist = '<datalist id="viterex-stage-options">'
+    . '<option value="dev">'
+    . '<option value="stage">'
+    . '<option value="staging">'
+    . '<option value="test">'
+    . '<option value="testing">'
+    . '<option value="prod">'
+    . '<option value="production">'
+    . '<option value="live">'
+    . '</datalist>';
+
 $hostRows = '';
 foreach ($formCfg['hosts'] as $i => $h) {
     $headerLabel = rex_escape(rex_i18n::msg('viterex_deploy_host_n')) . ' ' . ($i + 1);
-    $hostRows .= '<fieldset class="rex-form" style="margin-bottom:1.5rem;border:1px solid #ddd;padding:1rem;">';
-    $hostRows .= '<legend style="width:auto;padding:0 .5rem;font-size:1em;">' . $headerLabel
-        . ' <button type="submit" name="viterex_deploy_remove_host" value="' . (int) $i
-        . '" class="btn btn-xs btn-default" style="margin-left:.5rem;"'
-        . ' formnovalidate>'
+    $removeBtn = '<button type="submit" name="viterex_deploy_remove_host" value="' . (int) $i
+        . '" class="btn btn-xs btn-default pull-right" formnovalidate>'
         . '<i class="rex-icon fa-trash"></i> ' . rex_escape(rex_i18n::msg('viterex_deploy_remove_host_button'))
-        . '</button></legend>';
+        . '</button>';
+    $hostRows .= '<div class="panel panel-default">';
+    $hostRows .= '<div class="panel-heading">'
+        . $removeBtn
+        . '<strong>' . $headerLabel . '</strong>'
+        . '<div class="clearfix"></div>'
+        . '</div>';
+    $hostRows .= '<div class="panel-body">';
     $hostRows .= '<div class="row">';
     foreach ($hostFieldOrder as $field) {
         $val = (string) ($h[$field] ?? '');
         $label = rex_i18n::msg('viterex_deploy_field_' . $field);
         $inputId = 'viterex-deploy-host-' . $i . '-' . $field;
+        $listAttr = $field === 'stage' ? ' list="viterex-stage-options"' : '';
         $hostRows .= '<div class="col-sm-6 col-md-4">'
             . '<div class="form-group">'
             . '<label for="' . $inputId . '">' . rex_escape($label) . '</label>'
             . '<input type="text" id="' . $inputId
             . '" name="hosts[' . $i . '][' . $field . ']" value="' . rex_escape($val)
-            . '" class="form-control">'
+            . '" class="form-control"' . $listAttr . '>'
             . '</div></div>';
     }
-    $hostRows .= '</div></fieldset>';
+    $hostRows .= '</div>'; // .row
+    $hostRows .= '</div>'; // .panel-body
+    $hostRows .= '</div>'; // .panel
 }
 
 $addHostBtn = '<button type="submit" name="viterex_deploy_add_host" value="1"'
@@ -207,6 +234,7 @@ $saveBtn = '<button type="submit" name="viterex_deploy_save" value="1" class="bt
     . rex_escape(rex_i18n::msg('viterex_deploy_save_button')) . '</button>';
 
 $content = '<form action="' . $action . '" method="post">' . $csrfFields
+    . $stageDatalist
     . $repositoryHtml
     . $hostRows
     . '<div style="margin-bottom:1rem;">' . $addHostBtn . '</div>'
@@ -220,15 +248,17 @@ $fragment->setVar('body', $content, false);
 echo $fragment->parse('core/page/section.php');
 
 // --- Activate section (separate form) ---
-$activateContent = '<form action="' . $action . '" method="post">' . $csrfFields
-    . '<input type="hidden" name="viterex_deploy_activate" value="1">'
-    . '<p>' . rex_i18n::msg('viterex_deploy_activate_intro') . '</p>'
-    . '<button type="submit" class="btn btn-primary">'
-    . '<i class="rex-icon fa-bolt"></i> ' . rex_i18n::msg('viterex_deploy_activate_button')
-    . '</button></form>';
+if ($state !== Page::STATE_ACTIVE) {
+    $activateContent = '<form action="' . $action . '" method="post">' . $csrfFields
+        . '<input type="hidden" name="viterex_deploy_activate" value="1">'
+        . '<p>' . rex_i18n::msg('viterex_deploy_activate_intro') . '</p>'
+        . '<button type="submit" class="btn btn-primary">'
+        . '<i class="rex-icon fa-bolt"></i> ' . rex_i18n::msg('viterex_deploy_activate_button')
+        . '</button></form>';
 
-$fragment = new rex_fragment();
-$fragment->setVar('class', 'info', false);
-$fragment->setVar('title', rex_i18n::msg('viterex_deploy_activate_title'), false);
-$fragment->setVar('body', $activateContent, false);
-echo $fragment->parse('core/page/section.php');
+    $fragment = new rex_fragment();
+    $fragment->setVar('class', 'info', false);
+    $fragment->setVar('title', rex_i18n::msg('viterex_deploy_activate_title'), false);
+    $fragment->setVar('body', $activateContent, false);
+    echo $fragment->parse('core/page/section.php');
+}

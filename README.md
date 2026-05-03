@@ -415,6 +415,41 @@ REDAXOs Debug-Modus wird auf Dev/Staging eingeschaltet, auf Prod ausgeschaltet �
 
 ---
 
+## ydeploy helper
+
+When the [ydeploy](https://github.com/yakamara/ydeploy) addon is installed, viterex_addon ships a **Deploy** subpage in the backend (ViteRex → Deploy). It lets you edit deployment hosts via a form instead of hand-editing `deploy.php`.
+
+How it works:
+
+- A sidecar file `deploy.config.php` at the project root holds the editable values (repository URL, list of hosts with name/hostname/port/user/stage/path).
+- `deploy.php` requires the sidecar inside a clearly marked region:
+
+  ```php
+  // >>> VITEREX:DEPLOY_CONFIG (do not edit by hand) >>>
+  $cfg = require __DIR__ . '/deploy.config.php';
+  set('repository', $cfg['repository']);
+  foreach ($cfg['hosts'] as $h) {
+      host($h['name'])->setHostname($h['hostname'])
+          ->setRemoteUser($h['user'])->setPort($h['port'])
+          ->set('labels', ['stage' => $h['stage']])->setDeployPath($h['path']);
+  }
+  // <<< VITEREX:DEPLOY_CONFIG <<<
+  ```
+
+- **First visit:** the page tries to extract values from your current `deploy.php` and writes them into the sidecar (no `deploy.php` changes yet). If the project has a `git remote get-url origin`, that URL is used as the default repository. Review the form and click **Activate** to rewrite `deploy.php` to use the sidecar (a `.bak.<timestamp>` backup is written first).
+
+- **Subsequent saves:** only the sidecar is rewritten; `deploy.php` stays put. The deployer reads the new values on the next run.
+
+- **Anything outside the marker region** is yours — custom tasks, `add('shared_dirs', ...)`, `add('clear_paths', ...)`, environment branches, etc. The helper never touches it.
+
+- **Redundant `set('repository', ...)` calls** elsewhere in `deploy.php` (e.g., inside an `if ($isGit)` branch from the installer scaffold) would silently override the marker block due to Deployer's last-write-wins on `set`. On Activate, the helper detects these and replaces them with `/* viterex: removed redundant ... — overridden by sidecar */` comments so the marker block's value wins. The original code is preserved in the comment text for reference.
+
+- **Hand-edit the markers at your own risk.** If they end up partial or missing, the next Activate will refuse to rewrite and ask you to restore from a backup.
+
+The sidecar is plain PHP returning an array — no parser or new dependency needed. Commit it (or `.gitignore` it — your call).
+
+---
+
 ## Mitwirken
 
 Das Backend-Badge wird mit Vite gebaut. Wenn du Dateien unter `assets-src/` änderst, regeneriere die kompilierten Versionen unter `assets/badge/`:
