@@ -71,10 +71,18 @@ if ($mutateAction !== null) {
             'hosts' => array_values($rawHosts),
         ];
         if ($mutateAction === 'add') {
-            $formCfg['hosts'][] = [
-                'name' => '', 'hostname' => '', 'port' => '22',
-                'user' => '', 'stage' => '', 'path' => '',
-            ];
+            $last = end($formCfg['hosts']);
+            if (is_array($last)) {
+                $copy = $last;
+                $copy['name'] = '';
+                $copy['stage'] = '';
+                $formCfg['hosts'][] = $copy;
+            } else {
+                $formCfg['hosts'][] = [
+                    'name' => '', 'hostname' => '', 'port' => '22',
+                    'user' => '', 'stage' => '', 'path' => '',
+                ];
+            }
         } else {
             unset($formCfg['hosts'][$removeIdx]);
             $formCfg['hosts'] = array_values($formCfg['hosts']);

@@ -407,7 +407,8 @@ final class DeployFile
     public static function rewrite(string $contents, ?array $extracted): string
     {
         if (self::hasMarkers($contents)) {
-            return self::replaceMarkerRegion($contents);
+            $rewritten = self::replaceMarkerRegion($contents);
+            return self::neutralizeRedundantRepositorySets($rewritten);
         }
         if ($extracted === null) {
             return $contents;
@@ -417,9 +418,106 @@ final class DeployFile
             return $contents;
         }
         [$startByte, $endByte] = $range;
-        return substr($contents, 0, $startByte)
+        $rewritten = substr($contents, 0, $startByte)
             . self::renderMarkerRegion()
             . substr($contents, $endByte);
+        return self::neutralizeRedundantRepositorySets($rewritten);
+    }
+
+    /**
+     * Comment out every `set('repository', ...)` statement that lies outside
+     * the marker region. Such calls would override the marker block's
+     * `set('repository', $cfg['repository'])` (Deployer last-write-wins) and
+     * silently ignore the sidecar's value.
+     *
+     * Idempotent: the replacement is a `T_COMMENT` block, so subsequent
+     * rewrites don't re-detect already-neutralized statements.
+     */
+    private static function neutralizeRedundantRepositorySets(string $contents): string
+    {
+        $tokens = @token_get_all($contents);
+        if (!is_array($tokens) || count($tokens) === 0) {
+            return $contents;
+        }
+        $offsets = self::computeTokenOffsets($contents, $tokens);
+        $sig = [];
+        foreach ($tokens as $i => $tok) {
+            if (is_array($tok) && in_array($tok[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT, T_OPEN_TAG, T_INLINE_HTML], true)) {
+                continue;
+            }
+            $sig[] = ['orig_index' => $i, 'tok' => $tok, 'byte' => $offsets[$i]];
+        }
+
+        // Compute marker region byte range (if present) so we skip the set
+        // inside our own marker block.
+        $markerOpenByte = null;
+        $markerCloseByte = null;
+        $openPos = strpos($contents, self::MARKER_OPEN);
+        $closePos = strpos($contents, self::MARKER_CLOSE);
+        if ($openPos !== false && $closePos !== false && $closePos > $openPos) {
+            $markerOpenByte = $openPos;
+            $markerCloseByte = $closePos + strlen(self::MARKER_CLOSE);
+        }
+
+        $ranges = [];
+        $n = count($sig);
+        for ($i = 0; $i < $n - 3; $i++) {
+            $a = $sig[$i]['tok'];
+            if (!is_array($a) || $a[0] !== T_STRING || $a[1] !== 'set') {
+                continue;
+            }
+            if (($sig[$i + 1]['tok'] ?? null) !== '(') {
+                continue;
+            }
+            $argTok = $sig[$i + 2]['tok'] ?? null;
+            if (!is_array($argTok) || $argTok[0] !== T_CONSTANT_ENCAPSED_STRING) {
+                continue;
+            }
+            if (self::unquote($argTok[1]) !== 'repository') {
+                continue;
+            }
+            if (!self::isStatementStart($sig, $i)) {
+                continue;
+            }
+            $startByte = $sig[$i]['byte'];
+            if ($markerOpenByte !== null
+                && $startByte >= $markerOpenByte && $startByte < $markerCloseByte
+            ) {
+                continue; // this is OUR set inside the marker block
+            }
+            // Walk to the closing ';' at paren-depth 0
+            $j = $i + 1;
+            $depth = 0;
+            $semiIdx = null;
+            while ($j < $n) {
+                $t = $sig[$j]['tok'];
+                if ($t === '(' || $t === '[') $depth++;
+                elseif ($t === ')' || $t === ']') $depth--;
+                elseif ($t === ';' && $depth === 0) {
+                    $semiIdx = $j;
+                    break;
+                }
+                $j++;
+            }
+            if ($semiIdx === null) {
+                continue;
+            }
+            $endByte = $sig[$semiIdx]['byte'] + 1;
+            $ranges[] = [$startByte, $endByte];
+        }
+
+        if (count($ranges) === 0) {
+            return $contents;
+        }
+
+        // Apply replacements in reverse order so earlier offsets stay valid.
+        usort($ranges, static fn($a, $b) => $b[0] <=> $a[0]);
+        foreach ($ranges as [$startByte, $endByte]) {
+            $original = trim(substr($contents, $startByte, $endByte - $startByte));
+            $replacement = '/* viterex: removed redundant ' . $original . ' — overridden by sidecar */';
+            $contents = substr($contents, 0, $startByte) . $replacement . substr($contents, $endByte);
+        }
+        return $contents;
     }
 
     private static function renderMarkerRegion(): string

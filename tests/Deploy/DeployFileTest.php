@@ -161,8 +161,8 @@ final class DeployFileTest extends TestCase
         $this->assertStringContainsString('$deploymentHost =', $rewritten);
         // - require above the host chain (real-world layout)
         $this->assertStringContainsString("require __DIR__ . '/src/addons/ydeploy/deploy.php';", $rewritten);
-        // - user's set('repository', $deploymentRepository) above (overridden by marker block at runtime)
-        $this->assertStringContainsString("set('repository', \$deploymentRepository);", $rewritten);
+        // - user's set('repository', $deploymentRepository) above (neutralized by marker block activation)
+        $this->assertStringContainsString('/* viterex: removed redundant', $rewritten);
         // - custom task below
         $this->assertStringContainsString("task('custom:hello'", $rewritten);
         // host chain itself removed
@@ -183,9 +183,9 @@ final class DeployFileTest extends TestCase
         $this->assertStringNotContainsString("host('prod')", $rewritten);
         // exactly one foreach block injected
         $this->assertSame(1, substr_count($rewritten, 'foreach ($cfg[\'hosts\']'));
-        // prologue + user set survive
+        // prologue survives; user's set('repository', ...) is neutralized
         $this->assertStringContainsString('$deploymentName =', $rewritten);
-        $this->assertStringContainsString("set('repository', \$deploymentRepository);", $rewritten);
+        $this->assertStringContainsString('/* viterex: removed redundant', $rewritten);
     }
 
     public function testRewriteReturnsUnchangedWhenNoMarkersAndNoExtractable(): void
@@ -268,5 +268,43 @@ final class DeployFileTest extends TestCase
         $this->assertStringContainsString("run('echo hi')", $rewritten);
         // The real host chain is gone.
         $this->assertStringNotContainsString('->setHostname($deploymentHost)', $rewritten);
+    }
+
+    // --- neutralizeRedundantRepositorySets ---
+
+    public function testRewriteCommentsOutRedundantRepositorySets(): void
+    {
+        $orig = $this->fixture('with-redundant-repository-set.php');
+        $extracted = DeployFile::extract($orig);
+        $rewritten = DeployFile::rewrite($orig, $extracted);
+
+        // marker block sets repository from sidecar
+        $this->assertStringContainsString("set('repository', \$cfg['repository'])", $rewritten);
+        // both redundant statements commented out
+        $this->assertSame(
+            2,
+            substr_count($rewritten, '/* viterex: removed redundant'),
+            'Expected exactly 2 neutralized set() calls',
+        );
+        // user's set('branch', 'main') is left alone (we only target repository)
+        $this->assertStringContainsString("set('branch', 'main')", $rewritten);
+    }
+
+    public function testNeutralizationIsIdempotent(): void
+    {
+        $orig = $this->fixture('with-redundant-repository-set.php');
+        $first = DeployFile::rewrite($orig, DeployFile::extract($orig));
+        $second = DeployFile::rewrite($first, null);
+        $this->assertSame($first, $second);
+    }
+
+    public function testNeutralizationLeavesSetInsideMarkerAlone(): void
+    {
+        $contents = $this->fixture('with-markers.php');
+        // The marker block's own set('repository', $cfg['repository']) must
+        // NOT be commented out — it lives inside the marker region.
+        $rewritten = DeployFile::rewrite($contents, null);
+        $this->assertStringContainsString("set('repository', \$cfg['repository'])", $rewritten);
+        $this->assertStringNotContainsString('/* viterex: removed redundant', $rewritten);
     }
 }
