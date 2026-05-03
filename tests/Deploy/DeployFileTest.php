@@ -195,4 +195,47 @@ final class DeployFileTest extends TestCase
         $contents = $this->fixture('bare-php.php');
         $this->assertSame($contents, DeployFile::rewrite($contents, null));
     }
+
+    // --- rewrite: re-activation / idempotency ---
+
+    public function testRewriteReplacesMarkerRegionWhenAlreadyActivated(): void
+    {
+        $original = $this->fixture('with-markers.php');
+        // Mutate the marker region to simulate a stale viterex injection
+        // (e.g., a future viterex version added a new line). The rewrite
+        // should normalize it back to the canonical marker region.
+        $tampered = str_replace(
+            "\$cfg = require __DIR__ . '/deploy.config.php';",
+            "\$cfg = require __DIR__ . '/deploy.config.php'; // STALE",
+            $original,
+        );
+
+        $rewritten = DeployFile::rewrite($tampered, null);
+
+        $this->assertStringNotContainsString('// STALE', $rewritten);
+        $this->assertStringContainsString("\$cfg = require __DIR__ . '/deploy.config.php';\n", $rewritten);
+        // user code below the markers preserved
+        $this->assertStringContainsString("task('custom:hello'", $rewritten);
+    }
+
+    public function testRewriteIsIdempotent(): void
+    {
+        $orig = $this->fixture('single-host.php');
+        $extracted = DeployFile::extract($orig);
+        $first = DeployFile::rewrite($orig, $extracted);
+        $second = DeployFile::rewrite($first, null); // markers exist now → no extracted needed
+
+        $this->assertSame($first, $second);
+    }
+
+    // --- rewrite: tampered markers ---
+
+    public function testRewriteIsNoOpWhenMarkersTamperedAndNoExtractable(): void
+    {
+        $contents = $this->fixture('tampered-opening-only.php');
+        // hasMarkers() is false (only opening). No prologue assignments either.
+        // → rewrite has no markers to replace and no shape to extract → unchanged.
+        $this->assertFalse(DeployFile::hasMarkers($contents));
+        $this->assertSame($contents, DeployFile::rewrite($contents, DeployFile::extract($contents)));
+    }
 }
