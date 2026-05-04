@@ -415,6 +415,43 @@ REDAXOs Debug-Modus wird auf Dev/Staging eingeschaltet, auf Prod ausgeschaltet �
 
 ---
 
+## ydeploy-Helper
+
+Wenn das [ydeploy](https://github.com/yakamara/ydeploy)-Addon installiert ist, blendet viterex_addon eine **Deploy**-Subpage im Backend ein (ViteRex → Deploy). Damit lassen sich Deployment-Hosts per Formular bearbeiten, statt `deploy.php` von Hand zu editieren.
+
+So funktioniert's:
+
+- Eine Sidecar-Datei `deploy.config.php` im Projekt-Root hält die editierbaren Werte (Repository-URL, Liste der Hosts mit Name/Hostname/Port/User/Stage/Pfad).
+- `deploy.php` lädt die Sidecar innerhalb eines klar markierten Blocks per `require`:
+
+  ```php
+  // >>> VITEREX:DEPLOY_CONFIG (do not edit by hand) >>>
+  $cfg = require __DIR__ . '/deploy.config.php';
+  set('repository', $cfg['repository']);
+  foreach ($cfg['hosts'] as $h) {
+      host($h['name'])->setHostname($h['hostname'])
+          ->setRemoteUser($h['user'])->setPort($h['port'])
+          ->set('labels', ['stage' => $h['stage']])->setDeployPath($h['path']);
+  }
+  // <<< VITEREX:DEPLOY_CONFIG <<<
+  ```
+
+- **Erster Aufruf:** Die Seite versucht, Werte aus dem aktuellen `deploy.php` zu extrahieren und schreibt sie in die Sidecar (`deploy.php` bleibt dabei unverändert). Falls das Projekt ein `git remote get-url origin` hat, wird diese URL als Default-Repository verwendet. Formular prüfen und auf **Aktivieren** klicken, um `deploy.php` so umzuschreiben, dass es die Sidecar nutzt (vorher wird ein `.bak.<timestamp>`-Backup erstellt).
+
+- **Spätere Saves:** Nur die Sidecar wird neu geschrieben; `deploy.php` bleibt unangetastet. Der Deployer liest die neuen Werte beim nächsten Lauf.
+
+- **Alles ausserhalb des Markierungsblocks** gehört dir — eigene Tasks, `add('shared_dirs', ...)`, `add('clear_paths', ...)`, Environment-Branches usw. Der Helper fasst das nicht an.
+
+- **Redundante `set('repository', ...)`-Aufrufe** anderswo in `deploy.php` (z. B. innerhalb eines `if ($isGit)`-Zweigs aus dem Installer-Scaffold) würden den Markierungsblock stillschweigend überschreiben — Deployer arbeitet beim `set` nach Last-Write-Wins. Beim Aktivieren erkennt der Helper solche Aufrufe und ersetzt sie durch `/* viterex: removed redundant ... — overridden by sidecar */`-Kommentare, damit der Wert aus dem Markierungsblock gewinnt. Der Originalcode bleibt im Kommentartext erhalten.
+
+- **Stage-Label:** Das Eingabefeld bietet als Vorschläge nur die Werte an, für die ydeploy ein Badge stylet (`staging`, `production`, `prod`, `live`, `test`, `testing`). Eigene Werte sind weiterhin erlaubt, das Badge bleibt dann ungestylt. Empfohlene Wahl für reibungsloses Verhalten in beiden Welten: `staging` und `production` — sie passen zu ydeploys CSS und zu den Prefix-Matchern in viterex_addon (`Server::isProductionDeployment` testet `prod*`, `Server::isStagingDeployment` testet `stage*`).
+
+- **Markierungsblock manuell bearbeiten ist riskant.** Wenn die Marker unvollständig oder verschwunden sind, weigert sich das nächste Aktivieren, neu zu schreiben, und bittet dich, ein Backup wiederherzustellen.
+
+Die Sidecar ist einfaches PHP, das ein Array zurückgibt — kein Parser, keine zusätzliche Abhängigkeit nötig. Du kannst sie committen oder über `.gitignore` ausschliessen — deine Wahl.
+
+---
+
 ## Mitwirken
 
 Das Backend-Badge wird mit Vite gebaut. Wenn du Dateien unter `assets-src/` änderst, regeneriere die kompilierten Versionen unter `assets/badge/`:

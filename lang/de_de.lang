@@ -45,3 +45,34 @@ viterex_install_stubs_button = Stubs installieren
 viterex_install_result = <strong>%d</strong> Datei(en) geschrieben, <strong>%d</strong> übersprungen, <strong>%d</strong> gesichert. <code>.gitignore</code>: %s.
 viterex_skipped_intro = Diese Dateien existieren bereits und wurden nicht überschrieben (Checkbox aktivieren zum Überschreiben):
 viterex_backed_up_intro = Diese Dateien existierten bereits und wurden vor dem Überschreiben gesichert:
+
+viterex_deploy_title = Deploy
+viterex_deploy_settings_title = Deployment-Hosts
+viterex_deploy_activate_title = Sidecar aktivieren
+viterex_deploy_activate_intro = Mit „Aktivieren" wird <code>deploy.php</code> mit <code>deploy.config.php</code> verdrahtet. Vorher wird ein zeitgestempeltes Backup von <code>deploy.php</code> erstellt.
+viterex_deploy_activate_button = Aktivieren
+viterex_deploy_save_button = Deploy-Hosts speichern
+viterex_deploy_host_n = Host
+
+viterex_deploy_field_repository = Git-Repository
+viterex_deploy_field_name = Host-Name (Deployer-Alias)
+viterex_deploy_field_hostname = Hostname
+viterex_deploy_field_port = SSH-Port (leer = Standard)
+viterex_deploy_field_user = SSH-Benutzer
+viterex_deploy_field_stage = Stage-Label (z. B. staging / production — Werte, für die ydeploy ein Badge stylet)
+viterex_deploy_field_path = Deploy-Pfad auf dem Remote
+
+viterex_deploy_ydeploy_missing = Das <strong>ydeploy</strong>-Addon ist nicht installiert. Installiere und aktiviere es, um den Deploy-Helper zu nutzen.
+viterex_deploy_file_missing = <code>deploy.php</code> wurde im Projekt-Root nicht gefunden. Der Deploy-Helper benötigt die Standard-Deployer-Datei.
+viterex_deploy_sidecar_created = Sidecar <code>deploy.config.php</code> aus den aktuellen Werten in <code>deploy.php</code> erzeugt. Bitte das Formular prüfen und auf <em>Aktivieren</em> klicken.
+viterex_deploy_extract_failed = Aktuelle Deploy-Einstellungen konnten in <code>deploy.php</code> nicht erkannt werden. Bitte das Formular ausfüllen und auf <em>Aktivieren</em> klicken.
+viterex_deploy_needs_activation = Sidecar vorhanden, aber <code>deploy.php</code> noch nicht verdrahtet. Bitte unten auf <em>Aktivieren</em> klicken.
+viterex_deploy_active = Sidecar ist aktiv und mit <code>deploy.php</code> verdrahtet. Formularänderungen werden beim nächsten Deployer-Lauf übernommen.
+viterex_deploy_already_active = <code>deploy.php</code> ist bereits mit dem Sidecar verdrahtet; nichts zu tun.
+viterex_deploy_activate_no_sidecar = Kein Sidecar zum Aktivieren vorhanden — bitte zuerst das Formular speichern.
+viterex_deploy_rewrite_failed = <code>deploy.php</code> konnte nicht sicher umgeschrieben werden — der viterex-Markierungsblock scheint manipuliert oder die Prologue-/Host-Struktur wird nicht erkannt. Ein Backup wiederherstellen oder unvollständige Markierungen entfernen und es erneut versuchen.
+viterex_deploy_write_failed = Schreiben in <code>deploy.php</code> fehlgeschlagen. Bitte Dateirechte im Projekt-Root prüfen.
+viterex_deploy_saved = Deploy-Hosts in <code>deploy.config.php</code> gespeichert.
+viterex_deploy_activated = <code>deploy.php</code> wurde so umgeschrieben, dass es das Sidecar verwendet. Backup unter <code>{0}</code>.
+viterex_deploy_add_host_button = Host hinzufügen
+viterex_deploy_remove_host_button = Entfernen

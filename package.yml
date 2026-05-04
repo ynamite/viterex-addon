@@ -1,5 +1,5 @@
 package: viterex_addon
-version: '3.2.5'
+version: '3.2.6'
 license: MIT
 author: Yves Torres
 supportpage: https://github.com/ynamite/viterex_addon
@@ -13,6 +13,9 @@ page:
     settings:
       title: 'translate:viterex_settings'
       icon: rex-icon fa-cog
+    deploy:
+      title: 'translate:viterex_deploy_title'
+      icon: rex-icon fa-paper-plane
     docs:
       title: 'translate:viterex_docs'
       subPath: README.md

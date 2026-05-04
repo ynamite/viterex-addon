@@ -1,5 +1,15 @@
 # Changelog
 
+## **Version 3.2.6**
+
+### Added
+
+- **ydeploy-Helper: Backend-Subpage zum Bearbeiten der Deployment-Hosts** (`pages/deploy.php`, `lib/Deploy/{Sidecar,DeployFile,Page}.php`). Wenn das `ydeploy`-Addon installiert ist, blendet viterex_addon eine **Deploy**-Subpage im Backend ein (ViteRex → Deploy). Die Seite extrahiert beim ersten Aufruf die Hosts aus dem aktuellen `deploy.php` (token-basiertes Parsen via `token_get_all()`, kein `eval`/`include`) und schreibt sie in eine Sidecar-Datei `deploy.config.php` im Projekt-Root. Auf Klick auf **Aktivieren** wird `deploy.php` umgeschrieben, sodass die Sidecar via `require` gelesen und die Hosts in einem `foreach` aufgebaut werden — innerhalb eines klar markierten Blocks (`// >>> VITEREX:DEPLOY_CONFIG ... >>>`). Spätere Formular-Saves schreiben nur noch die Sidecar; `deploy.php` bleibt unangetastet. Multi-Host wird unterstützt (z. B. stage + prod). Vor jedem Schreibvorgang wird ein zeitgestempeltes Backup erstellt (`*.bak.YYYYmmdd-HHiiss`, gleiche Konvention wie `StubsInstaller`). Beim Aktivieren werden zusätzlich redundante `set('repository', ...)`-Aufrufe ausserhalb des Markierungsblocks (z. B. im `if ($isGit)`-Zweig des Installer-Scaffolds) erkannt und durch Kommentare neutralisiert, damit der Sidecar-Wert nicht durch Deployers Last-Write-Wins-Verhalten überschrieben wird. Der Parser ignoriert verschachtelte `host()`-Aufrufe (z. B. `on(host('local'), ...)` in eigenen Tasks) korrekt — nur top-level `host(...)->setHostname(...)->...->setDeployPath(...)`-Ketten werden als Host-Definitionen erkannt. Das Repository-Feld wird beim ersten Aufruf mit dem `git remote get-url origin`-Wert vorbelegt, falls verfügbar. Add/Remove-Buttons im Formular; das Stage-Label-Feld bietet die ydeploy-gestyleten Werte als Vorschläge an (Datalist). Die ganze Page ist konditional an `rex_addon::get('ydeploy')->isAvailable()` geknüpft. Siehe README → "ydeploy-Helper".
+
+### Internal
+
+- **`Ynamite\ViteRex\Deploy\` namespace** (`lib/Deploy/`) mit drei Klassen, alle ohne Redaxo-Runtime in den Test-Pfaden: `Sidecar` (Pure I/O, deterministischer PHP-Output für saubere Diffs), `DeployFile` (lexikalische Operationen — `extract`, `hasMarkers`, `rewrite`, plus die `neutralizeRedundantRepositorySets` Surgery), `Page` (reine Helfer für State-Detection und POST-Validierung). 47 neue PHPUnit-Tests (`tests/Deploy/`) decken die Parser-Edge-Cases, Backup-Verhalten, Marker-Manipulation, BOM/CRLF und Idempotenz ab.
+
 ## **Version 3.2.5**
 
 ### Fixed
