@@ -97,8 +97,22 @@ The release body becomes the addon description. Bump `package.yml` first, then c
 
 ## Roadmap
 
-- **v3.3**: automatically optimize SVGs referenced from templates with either `vite-plugin-svgr` or a PHP alternative when using `Assets::inline()` with an SVG path. SVGs in CSS/JS should also be optimized via `vite-plugin-svgr` or similar.
-  SVGs uploaded to the media pool should be optimized by hooking into the `MEDIA_ADD` EP.
+- **v3.3**: automatically clean and optimize SVGs referenced from templates with either `svgo`, `vite-plugin-svgr` or a PHP alternative when using `Assets::inline()` with an SVG path. SVGs in CSS/JS should also be optimized via `vite-plugin-svgr` or similar.
+  SVGs uploaded to the media pool should be optimized by hooking into the `MEDIA_ADD` EP. The optimization should:
+  - Strip metadata and comments
+  - convert styles to attributes
+  - remove unnecessary whitespace
+  - merge paths where possible
+  - simplify path data (e.g., convert `M10 10 L20 20` to `M10 10 20 20`)
+  - optionally convert colors to a consistent format (e.g., hex)
+  - preserve viewBox and other critical attributes
+  - be configurable via the addon settings (e.g., toggle optimization on/off, set SVGO options)
+  - handle errors gracefully (e.g., if optimization fails, use the original SVG and log a warning)
+  - consider caching optimized SVGs to avoid re-optimizing unchanged files
+  - not block the media upload process — optimization can be done asynchronously after the file is saved
+  - be tested with a variety of SVGs, including complex ones with nested groups, gradients, and filters, to ensure it doesn't break valid SVGs
+  - have a console command for batch-optimizing all SVGs (mediapool and/or a specific directory) that can be run manually or via a scheduled task
+  - just work well with the defaults, and without requiring users to set up a separate Node environment for SVGO, by using a PHP port or bundling SVGO with the addon and calling it via `exec()`.
 
   _Originally targeted v3.2; pushed to v3.3 because v3.2.0 shipped the `viterex:install-stubs` CLI command for create-viterex / other automated install flows._
 
