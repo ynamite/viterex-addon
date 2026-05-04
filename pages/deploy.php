@@ -181,15 +181,17 @@ $repositoryHtml = '<div class="form-group">'
 
 $hostFieldOrder = ['name', 'hostname', 'port', 'user', 'stage', 'path'];
 
+// Limited to the values ydeploy ships CSS rules for in `ydeploy-stage-<X>`
+// — anything else renders as an unstyled badge. `staging` and `production`
+// also satisfy viterex_addon's Server::isStagingDeployment / isProductionDeployment
+// prefix matchers (`stage*`, `prod*`).
 $stageDatalist = '<datalist id="viterex-stage-options">'
-    . '<option value="dev">'
-    . '<option value="stage">'
     . '<option value="staging">'
+    . '<option value="production">'
+    . '<option value="prod">'
+    . '<option value="live">'
     . '<option value="test">'
     . '<option value="testing">'
-    . '<option value="prod">'
-    . '<option value="production">'
-    . '<option value="live">'
     . '</datalist>';
 
 $hostRows = '';

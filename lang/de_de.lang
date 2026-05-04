@@ -59,7 +59,7 @@ viterex_deploy_field_name = Host-Name (Deployer-Alias)
 viterex_deploy_field_hostname = Hostname
 viterex_deploy_field_port = SSH-Port (leer = Standard)
 viterex_deploy_field_user = SSH-Benutzer
-viterex_deploy_field_stage = Stage-Label (z. B. stage / prod)
+viterex_deploy_field_stage = Stage-Label (z. B. staging / production — Werte, für die ydeploy ein Badge stylet)
 viterex_deploy_field_path = Deploy-Pfad auf dem Remote
 
 viterex_deploy_ydeploy_missing = Das <strong>ydeploy</strong>-Addon ist nicht installiert. Installiere und aktiviere es, um den Deploy-Helper zu nutzen.

@@ -444,7 +444,7 @@ So funktioniert's:
 
 - **Redundante `set('repository', ...)`-Aufrufe** anderswo in `deploy.php` (z. B. innerhalb eines `if ($isGit)`-Zweigs aus dem Installer-Scaffold) würden den Markierungsblock stillschweigend überschreiben — Deployer arbeitet beim `set` nach Last-Write-Wins. Beim Aktivieren erkennt der Helper solche Aufrufe und ersetzt sie durch `/* viterex: removed redundant ... — overridden by sidecar */`-Kommentare, damit der Wert aus dem Markierungsblock gewinnt. Der Originalcode bleibt im Kommentartext erhalten.
 
-- **Stage-Label:** Das Eingabefeld bietet die ydeploy-üblichen Werte als Vorschläge an (`dev`, `stage`, `staging`, `test`, `testing`, `prod`, `production`, `live`). Eigene Werte sind weiterhin erlaubt — viterex_addon wertet die Stage per Prefix-Match aus (`prod*` → Production-Verhalten, `stage*` → Staging-Verhalten, alles andere → Dev).
+- **Stage-Label:** Das Eingabefeld bietet als Vorschläge nur die Werte an, für die ydeploy ein Badge stylet (`staging`, `production`, `prod`, `live`, `test`, `testing`). Eigene Werte sind weiterhin erlaubt, das Badge bleibt dann ungestylt. Empfohlene Wahl für reibungsloses Verhalten in beiden Welten: `staging` und `production` — sie passen zu ydeploys CSS und zu den Prefix-Matchern in viterex_addon (`Server::isProductionDeployment` testet `prod*`, `Server::isStagingDeployment` testet `stage*`).
 
 - **Markierungsblock manuell bearbeiten ist riskant.** Wenn die Marker unvollständig oder verschwunden sind, weigert sich das nächste Aktivieren, neu zu schreiben, und bittet dich, ein Backup wiederherzustellen.
 
