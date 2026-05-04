@@ -415,14 +415,14 @@ REDAXOs Debug-Modus wird auf Dev/Staging eingeschaltet, auf Prod ausgeschaltet �
 
 ---
 
-## ydeploy helper
+## ydeploy-Helper
 
-When the [ydeploy](https://github.com/yakamara/ydeploy) addon is installed, viterex_addon ships a **Deploy** subpage in the backend (ViteRex → Deploy). It lets you edit deployment hosts via a form instead of hand-editing `deploy.php`.
+Wenn das [ydeploy](https://github.com/yakamara/ydeploy)-Addon installiert ist, blendet viterex_addon eine **Deploy**-Subpage im Backend ein (ViteRex → Deploy). Damit lassen sich Deployment-Hosts per Formular bearbeiten, statt `deploy.php` von Hand zu editieren.
 
-How it works:
+So funktioniert's:
 
-- A sidecar file `deploy.config.php` at the project root holds the editable values (repository URL, list of hosts with name/hostname/port/user/stage/path).
-- `deploy.php` requires the sidecar inside a clearly marked region:
+- Eine Sidecar-Datei `deploy.config.php` im Projekt-Root hält die editierbaren Werte (Repository-URL, Liste der Hosts mit Name/Hostname/Port/User/Stage/Pfad).
+- `deploy.php` lädt die Sidecar innerhalb eines klar markierten Blocks per `require`:
 
   ```php
   // >>> VITEREX:DEPLOY_CONFIG (do not edit by hand) >>>
@@ -436,17 +436,19 @@ How it works:
   // <<< VITEREX:DEPLOY_CONFIG <<<
   ```
 
-- **First visit:** the page tries to extract values from your current `deploy.php` and writes them into the sidecar (no `deploy.php` changes yet). If the project has a `git remote get-url origin`, that URL is used as the default repository. Review the form and click **Activate** to rewrite `deploy.php` to use the sidecar (a `.bak.<timestamp>` backup is written first).
+- **Erster Aufruf:** Die Seite versucht, Werte aus dem aktuellen `deploy.php` zu extrahieren und schreibt sie in die Sidecar (`deploy.php` bleibt dabei unverändert). Falls das Projekt ein `git remote get-url origin` hat, wird diese URL als Default-Repository verwendet. Formular prüfen und auf **Aktivieren** klicken, um `deploy.php` so umzuschreiben, dass es die Sidecar nutzt (vorher wird ein `.bak.<timestamp>`-Backup erstellt).
 
-- **Subsequent saves:** only the sidecar is rewritten; `deploy.php` stays put. The deployer reads the new values on the next run.
+- **Spätere Saves:** Nur die Sidecar wird neu geschrieben; `deploy.php` bleibt unangetastet. Der Deployer liest die neuen Werte beim nächsten Lauf.
 
-- **Anything outside the marker region** is yours — custom tasks, `add('shared_dirs', ...)`, `add('clear_paths', ...)`, environment branches, etc. The helper never touches it.
+- **Alles ausserhalb des Markierungsblocks** gehört dir — eigene Tasks, `add('shared_dirs', ...)`, `add('clear_paths', ...)`, Environment-Branches usw. Der Helper fasst das nicht an.
 
-- **Redundant `set('repository', ...)` calls** elsewhere in `deploy.php` (e.g., inside an `if ($isGit)` branch from the installer scaffold) would silently override the marker block due to Deployer's last-write-wins on `set`. On Activate, the helper detects these and replaces them with `/* viterex: removed redundant ... — overridden by sidecar */` comments so the marker block's value wins. The original code is preserved in the comment text for reference.
+- **Redundante `set('repository', ...)`-Aufrufe** anderswo in `deploy.php` (z. B. innerhalb eines `if ($isGit)`-Zweigs aus dem Installer-Scaffold) würden den Markierungsblock stillschweigend überschreiben — Deployer arbeitet beim `set` nach Last-Write-Wins. Beim Aktivieren erkennt der Helper solche Aufrufe und ersetzt sie durch `/* viterex: removed redundant ... — overridden by sidecar */`-Kommentare, damit der Wert aus dem Markierungsblock gewinnt. Der Originalcode bleibt im Kommentartext erhalten.
 
-- **Hand-edit the markers at your own risk.** If they end up partial or missing, the next Activate will refuse to rewrite and ask you to restore from a backup.
+- **Stage-Label:** Das Eingabefeld bietet die ydeploy-üblichen Werte als Vorschläge an (`dev`, `stage`, `staging`, `test`, `testing`, `prod`, `production`, `live`). Eigene Werte sind weiterhin erlaubt — viterex_addon wertet die Stage per Prefix-Match aus (`prod*` → Production-Verhalten, `stage*` → Staging-Verhalten, alles andere → Dev).
 
-The sidecar is plain PHP returning an array — no parser or new dependency needed. Commit it (or `.gitignore` it — your call).
+- **Markierungsblock manuell bearbeiten ist riskant.** Wenn die Marker unvollständig oder verschwunden sind, weigert sich das nächste Aktivieren, neu zu schreiben, und bittet dich, ein Backup wiederherzustellen.
+
+Die Sidecar ist einfaches PHP, das ein Array zurückgibt — kein Parser, keine zusätzliche Abhängigkeit nötig. Du kannst sie committen oder über `.gitignore` ausschliessen — deine Wahl.
 
 ---
 
