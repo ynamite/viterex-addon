@@ -40,6 +40,7 @@ ViteRex deckt den kompletten Frontend-Workflow für REDAXO ab — von der ersten
 - **block_peek-Integration**: Der `REX_VITE`-Platzhalter funktioniert auch in den Block-Vorschau-iframes von [`block_peek`](https://github.com/FriendsOfREDAXO/block_peek).
 - **HTTPS-Dev-Server** via [mkcert](https://github.com/FiloSottile/mkcert) — ein Befehl, fertig.
 - **ViteRex-Badge** im Frontend & Backend (nur für eingeloggte Admins, nur in Dev/Staging): zeigt Stage, Vite-Status, Git-Branch, Cache-Clear-Button, REDAXO- und ViteRex-Version.
+- **Automatische SVG-Optimierung**: SVGO im Dev (mutiert Source-SVGs 1:1 in-place), `mathiasreker/php-svg-optimizer` für Mediapool-Uploads in Staging/Prod. Strippt `<script>` und `on*`-Handler — schliesst eine standardmässig vorhandene XSS-Lücke beim SVG-Upload.
 - **noindex-Meta-Tag** auf Dev/Staging — wenn `ydeploy` installiert ist.
 - **Debug-Modus** wird automatisch passend zur Stage gesetzt.
 - **Erweiterbar** durch Downstream-Addons über ein Plugin-Wrapping-Modell, drei PHP-Extension-Points (`VITEREX_BADGE`, `VITEREX_PRELOAD`, `VITEREX_INSTALL_STUBS`) und eine öffentliche `StubsInstaller`-API für eigenes Scaffolding.
@@ -50,7 +51,7 @@ ViteRex deckt den kompletten Frontend-Workflow für REDAXO ab — von der ersten
 ## Voraussetzungen
 
 - **REDAXO** `>= 5.13`
-- **PHP** `>= 8.1`
+- **PHP** `>= 8.3` (war `>= 8.1` bis v3.2.x — siehe CHANGELOG)
 - **Node.js** `>= 18`, **npm** `>= 9`
 
 Empfohlene REDAXO-Addons (optional, aber sinnvoll):
@@ -396,6 +397,82 @@ Beim direkten Aufruf der Vite-Dev-URL (z.B. `https://127.0.0.1:5173`) zeigt der 
 Wenn das [`block_peek`](https://github.com/FriendsOfREDAXO/block_peek)-Addon installiert ist, registriert ViteRex einen Handler auf dessen `BLOCK_PEEK_OUTPUT`-Extension-Point, der `REX_VITE`-Platzhalter im Block-Vorschau-Template auflöst. Damit funktioniert HMR + bundled Assets auch in den iframe-Vorschauen im Backend (wo der normale `OUTPUT_FILTER` aus Sicherheitsgründen schweigt — sonst würde er literale `REX_VITE`-Strings in Slice-Editoren ersetzen).
 
 Die Integration ist konditional — sie aktiviert sich nur, wenn `block_peek` als Addon verfügbar ist. Kein hartes Coupling im Code.
+
+---
+
+## SVG-Optimierung
+
+ViteRex optimiert SVGs automatisch — sowohl Source-Dateien im Build als auch Mediapool-Uploads. Single Toggle in **ViteRex → Einstellungen → SVG-Optimierung**, default ON. Welche Engine läuft und wann sie läuft, hängt von der Oberfläche ab:
+
+| Surface          | Wann                                                | Engine                                            |
+| ---------------- | --------------------------------------------------- | ------------------------------------------------- |
+| Source-Assets    | `npm run dev` (server start) + `npm run build`      | SVGO (Node, via Vite-Plugin), 1:1 in-place        |
+| Vite copy-pipe   | `npm run build` (`viteStaticCopy` transform)        | SVGO                                              |
+| Mediapool        | `npm run build`                                     | SVGO (Vite-Plugin walked `<media_dir>`)           |
+| Mediapool        | Manuell: `bin/console viterex:optimize-svgs`        | SVGO wenn verfügbar, sonst `PhpOptimizer` (PHP)   |
+| Mediapool-Upload | `MEDIA_ADDED` / `MEDIA_UPDATED` (nur prod/staging)  | `PhpOptimizer` (Node-frei für die Live-Umgebung)  |
+
+In **dev** ist der Mediapool-Upload-Hook ein No-op — kein SVGO-Shell-out bei jedem Test-Upload. Räume mit `npm run build` oder dem Console-Command auf, wenn du willst.
+
+**Sicherheits-Effekt fürs Mediapool**: `<script>`-Tags und `on*`-Event-Handler werden bei jedem Prod/Staging-Upload entfernt — schliesst eine standardmässig vorhandene XSS-Lücke beim Hochladen von SVGs in Redaxo.
+
+**Cache**: Beide Pfade (Vite-Build + Console-Command) teilen sich `<cache_dir>/svg-optimized.json`. SHA1 der optimierten Bytes pro Datei; bereits optimale Files werden in Folge-Runs übersprungen. `bin/console viterex:optimize-svgs --force` ignoriert den Cache.
+
+**Idempotent / Fail-open**: SVGO-Output round-trippt unverändert; Cache verhindert dass das überhaupt bemerkt wird. Bei jedem Fehler bleibt die Datei unverändert.
+
+**npm-Dep**: `svgo` wird per `install.php` in die `package.json` des Projekts gemerged. Beim Upgrade von v3.2.x erscheint es automatisch in `devDependencies`; ein einmaliges `npm install` aktiviert die Optimierung. In der Lücke davor warnt das Vite-Plugin und macht nichts (kein Crash).
+
+### Console-Command
+
+```bash
+bin/console viterex:optimize-svgs              # walk + optimize
+bin/console viterex:optimize-svgs --dry-run    # list what would change
+bin/console viterex:optimize-svgs --force      # ignore cache, re-do everything
+```
+
+Engine-Wahl: SVGO wenn `npx svgo` auf PATH, sonst `PhpOptimizer`. Honors `svg_optimize_enabled` (bricht früh ab wenn off).
+
+### Inline-SVGs: Scope-Isolation gegen Class-Kollisionen
+
+Wer mehrere SVGs auf derselben Seite via `Assets::inline('img/foo.svg')` einbindet (typisch: Icons, Illustrationen aus Figma/Illustrator), ist standardmässig kollisionsanfällig: SVG-`<style>`-Blöcke haben **document-level scope**, sobald die SVG inline im HTML steht. Zwei SVGs mit `.cls-1`-Selectoren (Standard-Export-Naming) bluten gegenseitig in alle Pfade auf der Seite, die zufällig dieselbe Klasse tragen — auch in unbeteiligte SVGs oder HTML-Elemente. Dasselbe gilt für `<filter id="x">`, `<linearGradient id="x">`, `<symbol id="x">` und alle internen Referenzen darauf (`url(#x)`, `<use href="#x">`).
+
+`Assets::inline()` löst das automatisch: jede inline-eingebundene SVG kriegt zur Laufzeit einen stabilen, datei-abgeleiteten Prefix (`viterex-<path-slug>-…`) auf alle `id`/`class`-Attribute und alle internen Referenzen. Beispiel:
+
+```svg
+<!-- src/assets/img/icon-foo.svg -->
+<svg>
+  <style>.cls-1 { fill: red }</style>
+  <path class="cls-1" id="head"/>
+  <use href="#head"/>
+</svg>
+```
+
+…wird beim Inline-Einbinden zu:
+
+```svg
+<svg>
+  <style>.viterex-img-icon-foo-cls-1 { fill: red }</style>
+  <path class="viterex-img-icon-foo-cls-1" id="viterex-img-icon-foo-head"/>
+  <use href="#viterex-img-icon-foo-head"/>
+</svg>
+```
+
+**Was umgeschrieben wird:** `id="X"`, `class="X Y"`, `url(#X)`, `href="#X"` / `xlink:href="#X"` (nur Fragment-Refs, externe URLs bleiben unangetastet), sowie `.X`-Selectoren in `<style>`-Blöcken. `#X`-Selectoren in `<style>` werden nur umgeschrieben, wenn `X` auch als echtes `id="X"` im Dokument vorkommt — Hex-Farben wie `#fff` / `#abc` bleiben so unberührt.
+
+**Cache:** Das Ergebnis wird unter `rex_path::addonCache('viterex_addon', 'inline-svg/<sha1>.svg')` gecached, gekeyed auf `path + content`. Die Prefixing-Kosten fallen nur einmal pro (Datei, Inhalt)-Paar an. Source-Files auf der Disk bleiben **unberührt** — der Prefix entsteht nur zur Inline-Zeit, sodass dieselbe Datei weiterhin als `<img src="…">` oder `background-image: url()` funktioniert.
+
+**Opt-out per Datei:** Wer eine SVG bewusst mit shared `id`/`class`-Namen über mehrere Inlines hinweg verwendet (z. B. ein Sprite-Pattern mit cross-document Refs), kann das Prefixing für diese Datei abschalten:
+
+```svg
+<svg>
+  <!-- viterex:no-prefix -->
+  …
+</svg>
+```
+
+Der Magic-Comment darf irgendwo im Dokument stehen. Findet ihn der Prefixer, wird die SVG unverändert ausgeliefert (kein Cache-Eintrag).
+
+**Globale Toggle-Bindung:** Wenn `svg_optimize_enabled` auf OFF steht, läuft auch das Inline-Prefixing nicht — `Assets::inline()` verhält sich dann wie vor v3.3.
 
 ---
 

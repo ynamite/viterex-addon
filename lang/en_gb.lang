@@ -6,6 +6,7 @@ viterex_no_permission = You don't have permission to access ViteRex settings.
 viterex_section_entries = Entry points
 viterex_section_paths = Paths
 viterex_section_dev = Dev server & tooling
+viterex_section_svg = SVG optimization
 
 viterex_field_js_entry = JS entry
 viterex_field_js_entry_notice = Path to the main JavaScript entry, relative to project root.
@@ -37,6 +38,10 @@ viterex_field_https_enabled_notice = Requires <code>localhost+2-key.pem</code> +
 
 viterex_field_refresh_globs = Live-reload globs
 viterex_field_refresh_globs_notice = One glob per line. The Vite dev server triggers a full reload when matching files change.
+
+viterex_field_svg_optimize_enabled = Optimize SVGs
+viterex_field_svg_optimize_enabled_option = Enabled
+viterex_field_svg_optimize_enabled_notice = In <strong>dev</strong>, SVGO mutates source SVGs (<code>src/**/*.svg</code>) 1:1 in place and optimizes media-pool uploads. In <strong>staging/prod</strong>, only media-pool uploads are optimized at runtime (via <code>mathiasreker/php-svg-optimizer</code>); other SVGs are assumed already optimized in the deploy artifact. Strips <code>&lt;script&gt;</code> tags and <code>on*</code> handlers — important for media-pool XSS hygiene.
 
 viterex_install_stubs_title = Project scaffolding
 viterex_install_stubs_intro = Copy the project-root files (package.json, vite.config.js, .env.example, dev tooling configs, default entry stubs) into your project. The vite.config.js import path is baked from the <em>Public directory</em> setting above.

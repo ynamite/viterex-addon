@@ -24,15 +24,16 @@ final class Config
 
     /** @var array<string,string> */
     private const DEFAULTS = [
-        'js_entry'          => 'src/assets/js/main.js',
-        'css_entry'         => 'src/assets/css/style.css',
-        'public_dir'        => 'public',
-        'out_dir'           => 'public/dist',
-        'assets_source_dir' => 'src/assets',
-        'assets_sub_dir'    => 'assets',
-        'build_url_path'    => '/dist',
-        'copy_dirs'         => 'img',
-        'https_enabled'     => '0',
+        'js_entry'             => 'src/assets/js/main.js',
+        'css_entry'            => 'src/assets/css/style.css',
+        'public_dir'           => 'public',
+        'out_dir'              => 'public/dist',
+        'assets_source_dir'    => 'src/assets',
+        'assets_sub_dir'       => 'assets',
+        'build_url_path'       => '/dist',
+        'copy_dirs'            => 'img',
+        'https_enabled'        => '0',
+        'svg_optimize_enabled' => '1',
     ];
 
     public static function get(string $key): string
@@ -125,6 +126,7 @@ final class Config
     public static function syncStructureJson(): void
     {
         $cfg = self::all();
+        $base = rex_path::base();
         $payload = [
             'js_entry'          => $cfg['js_entry'],
             'css_entry'         => $cfg['css_entry'],
@@ -134,15 +136,34 @@ final class Config
             'assets_sub_dir'    => $cfg['assets_sub_dir'],
             'build_url_path'    => $cfg['build_url_path'],
             'copy_dirs'         => $cfg['copy_dirs'],
-            'https_enabled'     => self::isCheckboxChecked($cfg['https_enabled']),
-            'refresh_globs'     => $cfg['refresh_globs'],
-            'hot_file'          => self::HOT_FILE_REL,
-            'host_url'          => self::getHostUrl(),
+            'media_dir'         => self::makeRelative(rex_path::media(), $base),
+            'cache_dir'         => self::makeRelative(rex_path::addonCache('viterex_addon'), $base),
+            'https_enabled'        => self::isEnabled('https_enabled'),
+            'svg_optimize_enabled' => self::isEnabled('svg_optimize_enabled'),
+            'refresh_globs'        => $cfg['refresh_globs'],
+            'hot_file'             => self::HOT_FILE_REL,
+            'host_url'             => self::getHostUrl(),
         ];
         rex_file::put(
             rex_path::addonData('viterex_addon', 'structure.json'),
             json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
         );
+    }
+
+    /**
+     * Strip `$base` from `$absolute` so the result is project-root-relative,
+     * matching how every other path in `structure.json` is expressed. Falls
+     * back to the original absolute path if `$absolute` doesn't live under
+     * `$base` (extremely unusual; defensive).
+     */
+    private static function makeRelative(string $absolute, string $base): string
+    {
+        $base = rtrim($base, '/');
+        $absolute = rtrim($absolute, '/');
+        if ($base !== '' && str_starts_with($absolute, $base)) {
+            return ltrim(substr($absolute, \strlen($base)), '/');
+        }
+        return $absolute;
     }
 
     /**
@@ -152,8 +173,33 @@ final class Config
      * (`'0'`) and any programmatic `Config::set('…','1')` skip that wrapping.
      * Treat all forms uniformly so `=== '1'` doesn't silently miss `|1|`.
      */
-    private static function isCheckboxChecked(string $value): bool
+    public static function isCheckboxChecked(string $value): bool
     {
         return in_array('1', explode('|', trim($value, '|')), true);
+    }
+
+    /**
+     * Read a checkbox-style key, honoring an explicit "off" save.
+     *
+     * `Config::get()` falls through to `DEFAULTS` when the stored value is
+     * `null` — exactly what `rex_form_checkbox_element` writes for an
+     * unchecked save (`setValue(null) → getSaveValue() → null`). For a
+     * default-OFF checkbox like `https_enabled` that's harmless (null and
+     * the seeded `'0'` both resolve to "off"). For a default-ON checkbox
+     * like `svg_optimize_enabled` it would silently flip the user's
+     * explicit "off" back to "on" on every read.
+     *
+     * `array_key_exists` (instead of `isset`/`??`) is the only way to
+     * distinguish "explicitly set to null" from "never written to
+     * rex_config" — `isset(null)` is false so `rex_config::has()` can't
+     * tell the difference either.
+     */
+    public static function isEnabled(string $key): bool
+    {
+        $all = rex_config::get('viterex_addon');
+        $stored = is_array($all) && array_key_exists($key, $all)
+            ? (string) $all[$key]
+            : self::defaultFor($key);
+        return self::isCheckboxChecked($stored);
     }
 }

@@ -108,6 +108,13 @@ $field->setAttribute('rows', 8);
 $field->setAttribute('class', 'form-control rex-code');
 $field->setNotice(rex_i18n::msg('viterex_field_refresh_globs_notice'));
 
+$form->addFieldset(rex_i18n::msg('viterex_section_svg'));
+
+$field = $form->addCheckboxField('svg_optimize_enabled');
+$field->setLabel(rex_i18n::msg('viterex_field_svg_optimize_enabled'));
+$field->addOption(rex_i18n::msg('viterex_field_svg_optimize_enabled_option'), 1);
+$field->setNotice(rex_i18n::msg('viterex_field_svg_optimize_enabled_notice'));
+
 $content = '';
 $content .= $form->getMessage();
 $content .= $form->get();

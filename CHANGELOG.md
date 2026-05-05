@@ -1,5 +1,165 @@
 # Changelog
 
+## **Version 3.3.0**
+
+### ⚠️ Breaking — minimum PHP bumped to 8.3
+
+The addon now requires PHP `>=8.3` (was `>=8.1`), to enable the new
+`mathiasreker/php-svg-optimizer` runtime dependency. Active Redaxo
+installs have largely moved to 8.3+ since its November 2023 release;
+sites still on 8.1/8.2 should pin to v3.2.x.
+
+### Added
+
+- **Automatic SVG cleanup & optimization** (`lib/Svg/`, `lib/Media/SvgHook.php`,
+  `assets/viterex-vite-plugin.js`). Engine selection follows
+  `Server::getDeploymentStage()`:
+  - **Dev** stage → SVGO (Node) everywhere. The Vite plugin walks
+    `<assets_source_dir>/**/*.svg` on dev-server start and on `buildStart`
+    and rewrites each file 1:1 in place; the `viteStaticCopy` transform
+    optimizes SVGs en route to the build output. Media-pool uploads run
+    through SVGO via shell-out (`npx --no-install svgo`) when available,
+    with PHP-side fallback if `exec` is disabled or SVGO isn't installed.
+  - **Staging / prod** → `mathiasreker/php-svg-optimizer ^8.5` for the
+    media-pool runtime path only. Other SVGs are assumed already optimized
+    in the deploy artifact (dev did it before commit).
+  - Default ON (`svg_optimize_enabled='1'`); single toggle in ViteRex →
+    Settings → "SVG optimization". Mirrored to `structure.json` so the
+    Vite plugin honors it on the Node side.
+  - Fail-open contract: any failure (malformed SVG, missing tooling,
+    write error) returns the original bytes unchanged. Idempotent —
+    second optimization pass round-trips identically.
+  - Security side-effect for media-pool uploads: `<script>` tags and
+    `on*` event handlers are stripped, closing an XSS path that exists
+    by default in any Redaxo install accepting SVG uploads.
+- **`StubsInstaller::syncPackageDeps()`** is now public (formerly
+  `private mergePackageDeps()`). Lets `install.php` and downstream
+  addons push npm deps into the user's `package.json` without doing a
+  full stubs install. Additive, version-compare merge; idempotent.
+  `install.php` uses it to add `svgo: ^4.0.0` on every install/update,
+  so existing v3.2.x installs upgrading to v3.3.0 see SVGO appear in
+  their `package.json` automatically — they just run `npm install`.
+- **`IdPrefixer` scope-isolation for inlined SVGs** (`lib/Svg/IdPrefixer.php`,
+  wired into `Assets::inline()`). Each inlined SVG gets its `id`/`class`
+  attributes and internal references (`url(#X)`, `<use href="#X">`,
+  `xlink:href="#X"`, `<style>` selectors) prefixed with a stable,
+  filename-derived namespace (`viterex-<path-slug>-…`). Without this,
+  two SVGs sharing `.cls-1`-style classes (typical Figma/Illustrator
+  export) cross-bleed because their `<style>` blocks have document-level
+  scope when inlined into HTML. Hex colour literals like `#fff` are
+  protected by an id-set filter — only `#X` selectors that match a real
+  `id="X"` in the document get rewritten. Result is cached at
+  `rex_path::addonCache('viterex_addon', 'inline-svg/<sha1>.svg')` keyed
+  on `path + content`, so the rewrite cost is paid once per (file,
+  content) pair. Disk files stay generic (unchanged) — the prefix is
+  applied only at inline time, not in the source-mutation pass, so the
+  same source file remains usable as `<img src>` / `background-image`.
+  Per-file opt-out via the magic comment `<!-- viterex:no-prefix -->`
+  anywhere in the SVG. Honors the global `svg_optimize_enabled` toggle
+  (off → no prefixing).
+
+### Internal
+
+- **Simplification follow-up (2026-05-05):**
+  - **Dev-stage `MEDIA_*` hook is now a no-op.** Devs don't want SVGO
+    firing on every test upload. The Vite build (`npm run build`) and
+    the new `viterex:optimize-svgs` console command sweep the media
+    pool when devs are ready. Production / staging behavior is
+    unchanged: every uploaded SVG runs through `PhpOptimizer`, which
+    strips `<script>` and `on*` handlers as a security side-effect.
+    The "is dev" check requires ydeploy to be installed AND report
+    `'dev'` — without ydeploy, `Server::getDeploymentStage()` falls
+    through to `'dev'` by default, so a bare `=== 'dev'` check would
+    silently disable the security stripping on prod installs that
+    haven't installed ydeploy. Default: when ydeploy is absent, run
+    the optimizer (the safe choice).
+  - **`OptimizerFactory` deleted** (`lib/Svg/OptimizerFactory.php`,
+    plus its 5 tests). With the dev `MEDIA_*` branch removed, `SvgHook`
+    always wants `PhpOptimizer` and the new console command picks its
+    engine inline (`SvgoCli::isAvailable() ? new SvgoCli() : new PhpOptimizer()`).
+    The factory's `$stage` parameter no longer carried information.
+  - **`viterex:optimize-svgs` console command** (`lib/Console/OptimizeSvgsCommand.php`).
+    Walks `<assets_source_dir>` and `<media_dir>`, optimizes via SVGO
+    if available else `PhpOptimizer`. Flags: `--dry-run` (list, don't
+    write), `--force` (ignore cache). Honors `svg_optimize_enabled`.
+    The constructor takes an optional `OptimizerInterface` for test
+    injection; coverage is via end-to-end smoke in the test install
+    rather than a unit test (mirrors `InstallStubsCommand`'s
+    no-unit-test precedent — backfill candidate for a future cleanup).
+  - **Vite build now walks `<media_dir>`** during `buildStart` (NOT
+    `configureServer`, so dev-server start stays fast). Same SVGO
+    invocation as the existing assets walk.
+  - **Shared optimization cache** (`<cache_dir>/svg-optimized.json`).
+    Both the Vite plugin and the console command read/write the same
+    JSON sidecar — sha1 of post-optimization content keyed by
+    project-relative path. Files matching the recorded sha1 are
+    skipped (already in optimal form). Helper: `lib/Svg/OptimizationCache.php`,
+    fail-open on corrupted JSON, 6 unit tests.
+  - **`structure.json` gains `media_dir` + `cache_dir`** (both derived
+    from `rex_path::*`, not user config — no settings form fields,
+    no `Config::DEFAULTS` entry, just emitted at sync time).
+
+- **SVGO config centralized to `assets/svgo-config.mjs`** — single
+  source of truth for both the Vite plugin (`import` from sibling) and
+  the PHP shell-out path (`SvgoCli` passes the file via `--config`).
+  Previously the same config existed twice, as a JS object literal in
+  `viterex-vite-plugin.js` and a heredoc string in `SvgoCli.php`, kept
+  in sync by hand and a comment. The two definitions silently drifted
+  during testing of v3.3.0; this fix removes the possibility entirely.
+  Bonus: any future per-file extensions (e.g., scoped overrides) can
+  splice into the canonical config from either runtime without
+  serialization/translation.
+
+- New PHP test suite under `tests/Svg/` (27 cases) covering each
+  optimizer impl, the factory's stage-driven resolution + SVGO-fallback
+  branches, malformed-input fail-open, idempotency, the canonical
+  config file's existence + shape, and the `IdPrefixer` rewrite rules
+  (id/class attrs, `url()`, `<use>`/`xlink:href`, `<style>` selectors,
+  hex-colour false-positive guard, opt-out comment, stable prefix
+  derivation, and the headline two-SVG no-collision scenario). Adds 3
+  testable seams: `OptimizerFactory::for($stage, $enabled, ?$svgoAvailable)`
+  takes the SVGO-availability check as an injectable parameter so the
+  fallback path is unit-testable without environment setup;
+  `SvgoCli::resetAvailabilityCache()` (`@internal`) clears the per-request
+  cache; `Config::isCheckboxChecked()` was promoted from `private` to
+  `public static` so the SvgHook can decode the toggle without duplicating
+  the `|1|`/`|0|` parsing logic.
+- **`Config::isEnabled()`** — new helper for reading default-ON checkbox
+  toggles. `Config::get()` falls through to `DEFAULTS` when the stored
+  value is `null` (which is what `rex_form_checkbox_element` writes when
+  saving an unchecked box: `setValue(null) → getSaveValue → null`). For
+  default-OFF checkboxes like `https_enabled` that's harmless — both
+  `null` and the seeded `'0'` resolve to "off". For default-ON checkboxes
+  it would silently flip the user's explicit "off" save back to "on" on
+  every read. `isEnabled()` uses `array_key_exists` (instead of `isset`/`??`)
+  on the full namespace array to distinguish "explicitly set to null"
+  from "never written", honoring the user's intent. Both
+  `lib/Media/SvgHook.php` and `Config::syncStructureJson()` now read
+  `svg_optimize_enabled` and `https_enabled` through this helper.
+- **`tests/CheckboxValueTest.php`** — pins `Config::isCheckboxChecked()`
+  across all six storage forms a checkbox can take in `rex_config`
+  (`|1|`, `'1'`, `''`, `'0'`, `|0|`, `||`). Any future regression of the
+  v3.0 `https_enabled` `=== '1'` bug breaks tests immediately.
+- **Vite plugin defaults to ON when `structure.svg_optimize_enabled` is
+  missing** (`structure.svg_optimize_enabled !== false` instead of
+  `=== true`). Robust against stale `structure.json` — e.g., if the
+  user upgraded from v3.2.x and PHP-FPM opcache was holding the old
+  `Config.php` when `syncStructureJson` last ran.
+
+### Fixed
+
+- **`viteStaticCopy` no longer nests the source path under `dest`.**
+  `vite-plugin-static-copy` v4 (the version users on the latest stubs
+  pull) preserves the matched file's directory tree under `dest` by
+  default — a regression from v3's flat-copy behavior. Without
+  intervention, `src/assets/img/foo.svg` landed at
+  `<outDir>/assets/img/src/assets/img/foo.svg` instead of
+  `<outDir>/assets/img/foo.svg`. `resolveCopyTargets()` now sets
+  `rename: { stripBase: true }` on every target so the basename joins
+  `dest` directly. No-op on v3. Bug existed independent of the new SVG
+  optimization toggle but surfaced during v3.3 testing because the
+  copied SVGs were the obvious thing to inspect.
+
 ## **Version 3.2.6**
 
 ### Added
