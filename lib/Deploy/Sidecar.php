@@ -10,7 +10,7 @@ final class Sidecar
 
     public static function path(): string
     {
-        return rex_path::base('deploy.config.php');
+        return rex_path::addonData('viterex_addon', 'deploy.config.php');
     }
 
     /**
@@ -41,9 +41,11 @@ final class Sidecar
                     return null;
                 }
             }
-            if (!is_string($host['name']) || !is_string($host['hostname'])
+            if (
+                !is_string($host['name']) || !is_string($host['hostname'])
                 || !is_string($host['user']) || !is_string($host['stage'])
-                || !is_string($host['path'])) {
+                || !is_string($host['path'])
+            ) {
                 return null;
             }
             if ($host['port'] !== null && !is_int($host['port'])) {
