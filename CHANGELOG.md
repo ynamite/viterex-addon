@@ -145,6 +145,12 @@ sites still on 8.1/8.2 should pin to v3.2.x.
   `=== true`). Robust against stale `structure.json` — e.g., if the
   user upgraded from v3.2.x and PHP-FPM opcache was holding the old
   `Config.php` when `syncStructureJson` last ran.
+- **ydeploy-helper sidecar moved out of project root**
+  (`lib/Deploy/Sidecar.php`). `Sidecar::path()` now resolves to
+  `rex_path::addonData('viterex_addon', 'deploy.config.php')` instead
+  of `rex_path::base('deploy.config.php')`, keeping deploy state inside
+  the addon's data directory instead of leaking into the project root.
+  v3.2.6 was never tagged, so no users are affected by the path change.
 
 ### Fixed
 
