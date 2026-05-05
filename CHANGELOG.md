@@ -60,6 +60,35 @@ sites still on 8.1/8.2 should pin to v3.2.x.
 
 ### Internal
 
+- **Simplification follow-up (2026-05-05):**
+  - **Dev-stage `MEDIA_*` hook is now a no-op.** Devs don't want SVGO
+    firing on every test upload. The Vite build (`npm run build`) and
+    the new `viterex:optimize-svgs` console command sweep the media
+    pool when devs are ready. Production / staging behavior is
+    unchanged: every uploaded SVG runs through `PhpOptimizer`, which
+    strips `<script>` and `on*` handlers as a security side-effect.
+  - **`OptimizerFactory` deleted** (`lib/Svg/OptimizerFactory.php`,
+    plus its 5 tests). With the dev `MEDIA_*` branch removed, `SvgHook`
+    always wants `PhpOptimizer` and the new console command picks its
+    engine inline (`SvgoCli::isAvailable() ? new SvgoCli() : new PhpOptimizer()`).
+    The factory's `$stage` parameter no longer carried information.
+  - **`viterex:optimize-svgs` console command** (`lib/Console/OptimizeSvgsCommand.php`).
+    Walks `<assets_source_dir>` and `<media_dir>`, optimizes via SVGO
+    if available else `PhpOptimizer`. Flags: `--dry-run` (list, don't
+    write), `--force` (ignore cache). Honors `svg_optimize_enabled`.
+  - **Vite build now walks `<media_dir>`** during `buildStart` (NOT
+    `configureServer`, so dev-server start stays fast). Same SVGO
+    invocation as the existing assets walk.
+  - **Shared optimization cache** (`<cache_dir>/svg-optimized.json`).
+    Both the Vite plugin and the console command read/write the same
+    JSON sidecar — sha1 of post-optimization content keyed by
+    project-relative path. Files matching the recorded sha1 are
+    skipped (already in optimal form). Helper: `lib/Svg/OptimizationCache.php`,
+    fail-open on corrupted JSON, 6 unit tests.
+  - **`structure.json` gains `media_dir` + `cache_dir`** (both derived
+    from `rex_path::*`, not user config — no settings form fields,
+    no `Config::DEFAULTS` entry, just emitted at sync time).
+
 - **SVGO config centralized to `assets/svgo-config.mjs`** — single
   source of truth for both the Vite plugin (`import` from sibling) and
   the PHP shell-out path (`SvgoCli` passes the file via `--config`).

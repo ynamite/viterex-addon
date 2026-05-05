@@ -402,20 +402,35 @@ Die Integration ist konditional — sie aktiviert sich nur, wenn `block_peek` al
 
 ## SVG-Optimierung
 
-ViteRex optimiert SVGs automatisch — sowohl Source-Dateien im Build als auch Mediapool-Uploads zur Laufzeit. Single Toggle in **ViteRex → Einstellungen → SVG-Optimierung**, default ON. Welche Engine läuft, hängt von der Stage ab:
+ViteRex optimiert SVGs automatisch — sowohl Source-Dateien im Build als auch Mediapool-Uploads. Single Toggle in **ViteRex → Einstellungen → SVG-Optimierung**, default ON. Welche Engine läuft und wann sie läuft, hängt von der Oberfläche ab:
 
-| Stage              | Engine                                    | Wo                                                                                |
-| ------------------ | ----------------------------------------- | --------------------------------------------------------------------------------- |
-| `dev`              | [SVGO](https://github.com/svg/svgo) (Node) | **Vite-Plugin**: walked `<assets_source_dir>/**/*.svg` beim `dev`/`build`-Start, mutiert die Files **1:1 in-place**. **`viteStaticCopy`-Transform**: optimiert SVGs auf dem Weg ins Build-Output. **Mediapool-Hook**: shell-out via `npx --no-install svgo`, Fallback auf den PHP-Optimierer wenn `exec` deaktiviert oder svgo nicht installiert. |
-| `staging` / `prod` | [`mathiasreker/php-svg-optimizer`](https://github.com/MathiasReker/php-svg-optimizer) | Nur **Mediapool-Hook** zur Laufzeit. Andere SVGs sind im Deploy-Artefakt schon optimiert (Dev hat sie vor dem Commit gemacht). |
+| Surface          | Wann                                                | Engine                                            |
+| ---------------- | --------------------------------------------------- | ------------------------------------------------- |
+| Source-Assets    | `npm run dev` (server start) + `npm run build`      | SVGO (Node, via Vite-Plugin), 1:1 in-place        |
+| Vite copy-pipe   | `npm run build` (`viteStaticCopy` transform)        | SVGO                                              |
+| Mediapool        | `npm run build`                                     | SVGO (Vite-Plugin walked `<media_dir>`)           |
+| Mediapool        | Manuell: `bin/console viterex:optimize-svgs`        | SVGO wenn verfügbar, sonst `PhpOptimizer` (PHP)   |
+| Mediapool-Upload | `MEDIA_ADDED` / `MEDIA_UPDATED` (nur prod/staging)  | `PhpOptimizer` (Node-frei für die Live-Umgebung)  |
 
-**Sicherheits-Effekt fürs Mediapool**: `<script>`-Tags und `on*`-Event-Handler werden bei jedem Upload entfernt — schliesst eine standardmässig vorhandene XSS-Lücke beim Hochladen von SVGs in Redaxo.
+In **dev** ist der Mediapool-Upload-Hook ein No-op — kein SVGO-Shell-out bei jedem Test-Upload. Räume mit `npm run build` oder dem Console-Command auf, wenn du willst.
 
-**Idempotent**: SVGO-Output round-trippt unverändert durch SVGO. Erneute Scans sind No-Ops. Devs sehen nach dem ersten `npm run dev` einen Diff in ihren SVG-Sources, der die optimierte Form festhält — wird mit committet.
+**Sicherheits-Effekt fürs Mediapool**: `<script>`-Tags und `on*`-Event-Handler werden bei jedem Prod/Staging-Upload entfernt — schliesst eine standardmässig vorhandene XSS-Lücke beim Hochladen von SVGs in Redaxo.
 
-**Fail-open**: Bei jedem Fehler (malformed SVG, fehlendes Tooling, Schreibfehler) bleibt die Datei unverändert. Eine kaputte SVG rendert weiterhin so, wie sie es vor v3.3 tat.
+**Cache**: Beide Pfade (Vite-Build + Console-Command) teilen sich `<cache_dir>/svg-optimized.json`. SHA1 der optimierten Bytes pro Datei; bereits optimale Files werden in Folge-Runs übersprungen. `bin/console viterex:optimize-svgs --force` ignoriert den Cache.
 
-**npm-Dep**: `svgo` wird per `install.php` additiv in die `package.json` des Projekts gemerged. Beim Upgrade von v3.2.x zu v3.3.0 erscheint `svgo` automatisch in `devDependencies`; ein einmaliges `npm install` aktiviert die Optimierung. In der Lücke davor warnt das Vite-Plugin und macht nichts (kein Crash).
+**Idempotent / Fail-open**: SVGO-Output round-trippt unverändert; Cache verhindert dass das überhaupt bemerkt wird. Bei jedem Fehler bleibt die Datei unverändert.
+
+**npm-Dep**: `svgo` wird per `install.php` in die `package.json` des Projekts gemerged. Beim Upgrade von v3.2.x erscheint es automatisch in `devDependencies`; ein einmaliges `npm install` aktiviert die Optimierung. In der Lücke davor warnt das Vite-Plugin und macht nichts (kein Crash).
+
+### Console-Command
+
+```bash
+bin/console viterex:optimize-svgs              # walk + optimize
+bin/console viterex:optimize-svgs --dry-run    # list what would change
+bin/console viterex:optimize-svgs --force      # ignore cache, re-do everything
+```
+
+Engine-Wahl: SVGO wenn `npx svgo` auf PATH, sonst `PhpOptimizer`. Honors `svg_optimize_enabled` (bricht früh ab wenn off).
 
 ### Inline-SVGs: Scope-Isolation gegen Class-Kollisionen
 
