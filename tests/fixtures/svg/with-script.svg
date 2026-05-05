@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <script type="text/javascript">alert('xss')</script>
+  <circle cx="12" cy="12" r="10" fill="red"/>
+</svg>

@@ -24,15 +24,16 @@ final class Config
 
     /** @var array<string,string> */
     private const DEFAULTS = [
-        'js_entry'          => 'src/assets/js/main.js',
-        'css_entry'         => 'src/assets/css/style.css',
-        'public_dir'        => 'public',
-        'out_dir'           => 'public/dist',
-        'assets_source_dir' => 'src/assets',
-        'assets_sub_dir'    => 'assets',
-        'build_url_path'    => '/dist',
-        'copy_dirs'         => 'img',
-        'https_enabled'     => '0',
+        'js_entry'             => 'src/assets/js/main.js',
+        'css_entry'            => 'src/assets/css/style.css',
+        'public_dir'           => 'public',
+        'out_dir'              => 'public/dist',
+        'assets_source_dir'    => 'src/assets',
+        'assets_sub_dir'       => 'assets',
+        'build_url_path'       => '/dist',
+        'copy_dirs'            => 'img',
+        'https_enabled'        => '0',
+        'svg_optimize_enabled' => '1',
     ];
 
     public static function get(string $key): string
@@ -134,10 +135,11 @@ final class Config
             'assets_sub_dir'    => $cfg['assets_sub_dir'],
             'build_url_path'    => $cfg['build_url_path'],
             'copy_dirs'         => $cfg['copy_dirs'],
-            'https_enabled'     => self::isCheckboxChecked($cfg['https_enabled']),
-            'refresh_globs'     => $cfg['refresh_globs'],
-            'hot_file'          => self::HOT_FILE_REL,
-            'host_url'          => self::getHostUrl(),
+            'https_enabled'        => self::isEnabled('https_enabled'),
+            'svg_optimize_enabled' => self::isEnabled('svg_optimize_enabled'),
+            'refresh_globs'        => $cfg['refresh_globs'],
+            'hot_file'             => self::HOT_FILE_REL,
+            'host_url'             => self::getHostUrl(),
         ];
         rex_file::put(
             rex_path::addonData('viterex_addon', 'structure.json'),
@@ -152,8 +154,33 @@ final class Config
      * (`'0'`) and any programmatic `Config::set('…','1')` skip that wrapping.
      * Treat all forms uniformly so `=== '1'` doesn't silently miss `|1|`.
      */
-    private static function isCheckboxChecked(string $value): bool
+    public static function isCheckboxChecked(string $value): bool
     {
         return in_array('1', explode('|', trim($value, '|')), true);
+    }
+
+    /**
+     * Read a checkbox-style key, honoring an explicit "off" save.
+     *
+     * `Config::get()` falls through to `DEFAULTS` when the stored value is
+     * `null` — exactly what `rex_form_checkbox_element` writes for an
+     * unchecked save (`setValue(null) → getSaveValue() → null`). For a
+     * default-OFF checkbox like `https_enabled` that's harmless (null and
+     * the seeded `'0'` both resolve to "off"). For a default-ON checkbox
+     * like `svg_optimize_enabled` it would silently flip the user's
+     * explicit "off" back to "on" on every read.
+     *
+     * `array_key_exists` (instead of `isset`/`??`) is the only way to
+     * distinguish "explicitly set to null" from "never written to
+     * rex_config" — `isset(null)` is false so `rex_config::has()` can't
+     * tell the difference either.
+     */
+    public static function isEnabled(string $key): bool
+    {
+        $all = rex_config::get('viterex_addon');
+        $stored = is_array($all) && array_key_exists($key, $all)
+            ? (string) $all[$key]
+            : self::defaultFor($key);
+        return self::isCheckboxChecked($stored);
     }
 }

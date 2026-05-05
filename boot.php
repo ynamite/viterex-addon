@@ -9,6 +9,7 @@
  */
 
 use Ynamite\ViteRex\Badge;
+use Ynamite\ViteRex\Media\SvgHook;
 use Ynamite\ViteRex\OutputFilter;
 use Ynamite\ViteRex\Server;
 
@@ -76,6 +77,11 @@ if (rex_addon::get('yform')->isAvailable()) {
 foreach ($viterexReloadEps as $epName) {
     rex_extension::register($epName, $viterexReloadSignal);
 }
+
+// Optimize SVGs as they enter the media pool. Independent registration on
+// the same MEDIA_* EPs as the reload-signal handler — both fire, neither
+// interferes (each returns void).
+SvgHook::register();
 
 // block_peek preview iframes are rendered into the BACKEND response body.
 // Our OUTPUT_FILTER bails on backend (would otherwise rewrite literal

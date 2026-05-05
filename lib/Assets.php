@@ -4,6 +4,7 @@ namespace Ynamite\ViteRex;
 
 use rex_file;
 use rex_path;
+use Ynamite\ViteRex\Svg\IdPrefixer;
 
 final class Assets
 {
@@ -130,17 +131,52 @@ final class Assets
 
     /**
      * Read raw file content for inlining (SVG, JSON, raw HTML fragment, …).
-     * Resolves via `Assets::path()` so dev reads source, prod reads from rollup-plugin-copy'd location.
+     * Resolves via `Assets::path()` so dev reads source, prod reads from
+     * the rollup-plugin-copy'd build output location.
+     *
+     * SVGs are run through `IdPrefixer` to scope-isolate their `id`/`class`
+     * attributes — without this, two inlined SVGs sharing `.cls-1`-style
+     * selectors (typical Figma/Illustrator export) collide because their
+     * `<style>` blocks have document-level scope when inlined into HTML.
+     * Result is cached at `rex_path::addonCache('viterex_addon', 'inline-svg/')`
+     * keyed on `sha1(path + ':' + content)`, so the prefixing cost is paid
+     * once per (file, contents) pair. Bypassed when `svg_optimize_enabled`
+     * is off, or when the file contains `<!-- viterex:no-prefix -->`.
      */
     public static function inline(string $relativePath): string
     {
         $content = rex_file::get(self::path($relativePath));
-        return is_string($content) ? $content : '';
+        if (!is_string($content) || $content === '') {
+            return '';
+        }
+        if (!self::isSvgPath($relativePath) || !Config::isEnabled('svg_optimize_enabled')) {
+            return $content;
+        }
+        $prefixer = new IdPrefixer();
+        if ($prefixer->isOptedOut($content)) {
+            return $content;
+        }
+        $cachePath = rex_path::addonCache(
+            'viterex_addon',
+            'inline-svg/' . sha1($relativePath . ':' . $content) . '.svg',
+        );
+        $cached = rex_file::get($cachePath);
+        if (is_string($cached) && $cached !== '') {
+            return $cached;
+        }
+        $prefixed = $prefixer->prefix($content, $prefixer->deriveStablePrefix($relativePath));
+        rex_file::put($cachePath, $prefixed);
+        return $prefixed;
     }
 
     private static function isCssPath(string $path): bool
     {
         return strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'css';
+    }
+
+    private static function isSvgPath(string $path): bool
+    {
+        return strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'svg';
     }
 
     private static function normalizeEntries(?array $entries): array

@@ -6,6 +6,7 @@ viterex_no_permission = Du hast keine Berechtigung, die ViteRex-Einstellungen zu
 viterex_section_entries = Einstiegspunkte
 viterex_section_paths = Pfade
 viterex_section_dev = Dev-Server & Werkzeuge
+viterex_section_svg = SVG-Optimierung
 
 viterex_field_js_entry = JS-Einstiegspunkt
 viterex_field_js_entry_notice = Pfad zur JavaScript-Hauptdatei, relativ zum Projekt-Root.
@@ -37,6 +38,10 @@ viterex_field_https_enabled_notice = Benötigt <code>localhost+2-key.pem</code> 
 
 viterex_field_refresh_globs = Live-Reload-Globs
 viterex_field_refresh_globs_notice = Ein Glob pro Zeile. Der Vite-Dev-Server triggert ein Full-Reload bei Änderung passender Dateien.
+
+viterex_field_svg_optimize_enabled = SVGs optimieren
+viterex_field_svg_optimize_enabled_option = Aktiviert
+viterex_field_svg_optimize_enabled_notice = In <strong>Dev</strong> mutiert SVGO Source-SVGs (<code>src/**/*.svg</code>) 1:1 in-place und optimiert Mediapool-Uploads. In <strong>Staging/Prod</strong> werden zur Laufzeit nur Mediapool-Uploads optimiert (über <code>mathiasreker/php-svg-optimizer</code>); andere SVGs sind im Deploy-Artefakt schon optimiert. Entfernt <code>&lt;script&gt;</code>-Tags und <code>on*</code>-Handler — wichtig für die XSS-Hygiene des Mediapools.
 
 viterex_install_stubs_title = Projekt-Scaffolding
 viterex_install_stubs_intro = Kopiert die Projekt-Root-Dateien (package.json, vite.config.js, .env.example, Dev-Tooling-Konfigurationen, Default-Einstiegspunkt-Stubs) ins Projekt. Der vite.config.js-Import-Pfad wird aus der oben gesetzten <em>Öffentliches Verzeichnis</em>-Einstellung generiert.
