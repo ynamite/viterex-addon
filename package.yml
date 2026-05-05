@@ -24,6 +24,7 @@ page:
 
 console_commands:
   viterex:install-stubs: Ynamite\ViteRex\Console\InstallStubsCommand
+  viterex:optimize-svgs: Ynamite\ViteRex\Console\OptimizeSvgsCommand
 
 requires:
   redaxo: '^5.13.0'
