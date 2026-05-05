@@ -29,6 +29,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 import browserslist from "browserslist";
 import { browserslistToTargets } from "lightningcss";
 import liveReload from "vite-plugin-live-reload";
@@ -164,67 +165,138 @@ async function loadSvgo() {
 }
 
 /**
- * Optimize one SVG file in place. Idempotent: SVGO output round-trips
- * unchanged on a second pass, so re-runs are no-ops.
+ * Optimize one SVG file in place. Uses the shared OptimizationCache JSON
+ * to skip files already in optimal form (sha1 of current on-disk content
+ * matches the recorded value).
+ *
+ * Returns one of: "optimized" (file changed + cache updated),
+ * "skipped" (cache hit OR optimizer no-op'd), "error" (read/write/svgo
+ * failure — warning printed).
  */
-async function optimizeSvgFile(absPath, optimize) {
+async function optimizeSvgFile(absPath, optimize, cache, cwd) {
 	let raw;
 	try {
 		raw = await fs.promises.readFile(absPath, "utf8");
 	} catch {
-		return false;
+		return "error";
 	}
+	const rel = path.relative(cwd, absPath).replace(/\\/g, "/");
+	const currentHash = sha1(raw);
+	if (cache[rel] === currentHash) return "skipped";
+
 	let result;
 	try {
 		result = optimize(raw, VITEREX_SVGO_CONFIG);
 	} catch (e) {
 		console.warn(`[viterex] svgo failed on ${absPath}: ${e.message}`);
-		return false;
+		return "error";
 	}
-	if (!result?.data || result.data === raw) {
-		return false;
+	const finalBytes = result?.data || raw;
+	if (finalBytes !== raw) {
+		try {
+			await fs.promises.writeFile(absPath, finalBytes, "utf8");
+		} catch (e) {
+			console.warn(`[viterex] could not write optimized ${absPath}: ${e.message}`);
+			return "error";
+		}
+		cache[rel] = sha1(finalBytes);
+		return "optimized";
 	}
+	// optimizer was a no-op (file already optimal); record sha1 anyway so
+	// next run skips the SVGO call
+	cache[rel] = currentHash;
+	return "skipped";
+}
+
+/**
+ * Read the optimization cache JSON. Returns an empty object if the file
+ * doesn't exist, is unreadable, or contains invalid JSON. Mirrors the
+ * fail-open semantics of `lib/Svg/OptimizationCache.php`'s `load()`.
+ */
+function loadOptimizationCache(cachePath) {
+	if (!cachePath) return {};
 	try {
-		await fs.promises.writeFile(absPath, result.data, "utf8");
-		return true;
-	} catch (e) {
-		console.warn(`[viterex] could not write optimized ${absPath}: ${e.message}`);
-		return false;
+		const raw = fs.readFileSync(cachePath, "utf8");
+		const parsed = JSON.parse(raw);
+		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+		const out = {};
+		for (const [k, v] of Object.entries(parsed)) {
+			if (typeof k === "string" && typeof v === "string") out[k] = v;
+		}
+		return out;
+	} catch {
+		return {};
 	}
 }
 
 /**
- * SVG optimization plugin. In dev: scans `srcGlob` on server start and
- * mutates SVGs 1:1 in place so committed source matches the deployed
- * artifact. In build: same scan runs at `buildStart` so a build also leaves
- * source clean. SVGs copied via `viteStaticCopy` are intercepted separately
- * (see the `transform` callback wired below).
+ * Persist the optimization cache JSON. Errors are warned-but-not-thrown:
+ * cache persistence is best-effort, never load-bearing. On the next run we
+ * just re-derive from disk.
+ */
+function persistOptimizationCache(cachePath, cache) {
+	if (!cachePath) return;
+	try {
+		fs.mkdirSync(path.dirname(cachePath), { recursive: true });
+		fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
+	} catch (e) {
+		console.warn(`[viterex] could not persist svg-optimized.json: ${e.message}`);
+	}
+}
+
+function sha1(content) {
+	return createHash("sha1").update(content).digest("hex");
+}
+
+/**
+ * SVG optimization plugin. In dev (`configureServer`): walks
+ * `<assets_source_dir>` and optimizes 1:1 in place. In build
+ * (`buildStart`): walks `<assets_source_dir>` AND `<media_dir>` so
+ * `npm run build` produces a clean media-pool too. The shared
+ * OptimizationCache (sidecar JSON at `<cache_dir>/svg-optimized.json`)
+ * means subsequent runs skip files that haven't changed since their
+ * last optimize.
  *
  * Skipped (returns null) when toggle is disabled — caller filters nulls
  * out of the plugin array.
  */
-function svgOptimizePlugin({ enabled, srcDir }) {
+function svgOptimizePlugin({ enabled, srcDir, mediaDir, cachePath }) {
 	if (!enabled) return null;
-	const scanned = new Set(); // dedupe across configureServer + buildStart
-	async function scanAndRewrite() {
+	const scanned = new Set();
+	const cache = loadOptimizationCache(cachePath);
+	const cwd = process.cwd();
+
+	async function scanDir(dir, label) {
+		if (!dir || !fs.existsSync(dir)) return;
 		const optimize = await loadSvgo();
 		if (!optimize) return;
-		const files = await walkSvgs(srcDir);
-		let touched = 0;
+		const files = await walkSvgs(dir);
+		const counts = { optimized: 0, skipped: 0, errors: 0 };
 		for (const file of files) {
 			if (scanned.has(file)) continue;
 			scanned.add(file);
-			if (await optimizeSvgFile(file, optimize)) touched++;
+			const r = await optimizeSvgFile(file, optimize, cache, cwd);
+			counts[r === "error" ? "errors" : r]++;
 		}
-		if (touched > 0) {
-			console.log(`[viterex] optimized ${touched} SVG file(s) under ${path.relative(process.cwd(), srcDir)}`);
+		if (counts.optimized > 0 || counts.errors > 0) {
+			console.log(
+				`[viterex] svg ${label}: optimized=${counts.optimized} skipped=${counts.skipped} errors=${counts.errors}`,
+			);
 		}
 	}
+
 	return {
 		name: "viterex:svg-optimize",
-		buildStart: scanAndRewrite,
+		async buildStart() {
+			await scanDir(srcDir, "assets");
+			await scanDir(mediaDir, "media");
+			persistOptimizationCache(cachePath, cache);
+		},
 		configureServer(server) {
-			server.httpServer?.once("listening", scanAndRewrite);
+			server.httpServer?.once("listening", async () => {
+				await scanDir(srcDir, "assets");
+				persistOptimizationCache(cachePath, cache);
+			});
 		},
 	};
 }
@@ -309,9 +381,15 @@ export default function viterex(options = {}) {
 	// when the user upgraded from v3.2.x and the backend hasn't re-synced
 	// `structure.json` yet — still gets optimization. Only an explicit
 	// `false` (user toggled off in Settings) disables.
+	const mediaDirFs = structure.media_dir ? path.resolve(cwd, structure.media_dir) : null;
+	const cacheFs = structure.cache_dir
+		? path.resolve(cwd, structure.cache_dir, "svg-optimized.json")
+		: null;
 	const svgOptimize = svgOptimizePlugin({
 		enabled: structure.svg_optimize_enabled !== false,
 		srcDir: assetsSourceFs,
+		mediaDir: mediaDirFs,
+		cachePath: cacheFs,
 	});
 
 	const plugins = [hotFilePlugin(hotFileFs), devIndexPlugin(structure.host_url)];
