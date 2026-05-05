@@ -126,6 +126,7 @@ final class Config
     public static function syncStructureJson(): void
     {
         $cfg = self::all();
+        $base = rex_path::base();
         $payload = [
             'js_entry'          => $cfg['js_entry'],
             'css_entry'         => $cfg['css_entry'],
@@ -135,6 +136,8 @@ final class Config
             'assets_sub_dir'    => $cfg['assets_sub_dir'],
             'build_url_path'    => $cfg['build_url_path'],
             'copy_dirs'         => $cfg['copy_dirs'],
+            'media_dir'         => self::makeRelative(rex_path::media(), $base),
+            'cache_dir'         => self::makeRelative(rex_path::addonCache('viterex_addon'), $base),
             'https_enabled'        => self::isEnabled('https_enabled'),
             'svg_optimize_enabled' => self::isEnabled('svg_optimize_enabled'),
             'refresh_globs'        => $cfg['refresh_globs'],
@@ -145,6 +148,22 @@ final class Config
             rex_path::addonData('viterex_addon', 'structure.json'),
             json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
         );
+    }
+
+    /**
+     * Strip `$base` from `$absolute` so the result is project-root-relative,
+     * matching how every other path in `structure.json` is expressed. Falls
+     * back to the original absolute path if `$absolute` doesn't live under
+     * `$base` (extremely unusual; defensive).
+     */
+    private static function makeRelative(string $absolute, string $base): string
+    {
+        $base = rtrim($base, '/');
+        $absolute = rtrim($absolute, '/');
+        if ($base !== '' && str_starts_with($absolute, $base)) {
+            return ltrim(substr($absolute, \strlen($base)), '/');
+        }
+        return $absolute;
     }
 
     /**
