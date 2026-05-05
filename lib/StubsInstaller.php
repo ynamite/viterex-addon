@@ -86,7 +86,7 @@ final class StubsInstaller
         }
         $result = compact('written', 'skipped', 'backedUp');
         if ($packageDeps !== null) {
-            $result['packageDepsMerged'] = self::mergePackageDeps($packageDeps);
+            $result['packageDepsMerged'] = self::syncPackageDeps($packageDeps);
         }
         return $result;
     }
@@ -115,12 +115,16 @@ final class StubsInstaller
      * Merge npm dependencies into the user's project package.json.
      * Additive — never removes user-installed deps. On version conflict, keeps
      * whichever constraint compares higher via `version_compare` on the
-     * leading semver segment.
+     * leading semver segment. Idempotent — safe to call on every addon
+     * install/update.
+     *
+     * Public so install.php and downstream addons can push deps into the
+     * user's project without doing a full stubs install.
      *
      * @param array{dependencies?: array<string,string>, devDependencies?: array<string,string>} $deps
      * @return int Number of new entries added (across both sections)
      */
-    private static function mergePackageDeps(array $deps): int
+    public static function syncPackageDeps(array $deps): int
     {
         $packageJsonPath = rex_path::base('package.json');
         if (!is_file($packageJsonPath)) {
