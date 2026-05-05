@@ -67,6 +67,12 @@ sites still on 8.1/8.2 should pin to v3.2.x.
     pool when devs are ready. Production / staging behavior is
     unchanged: every uploaded SVG runs through `PhpOptimizer`, which
     strips `<script>` and `on*` handlers as a security side-effect.
+    The "is dev" check requires ydeploy to be installed AND report
+    `'dev'` — without ydeploy, `Server::getDeploymentStage()` falls
+    through to `'dev'` by default, so a bare `=== 'dev'` check would
+    silently disable the security stripping on prod installs that
+    haven't installed ydeploy. Default: when ydeploy is absent, run
+    the optimizer (the safe choice).
   - **`OptimizerFactory` deleted** (`lib/Svg/OptimizerFactory.php`,
     plus its 5 tests). With the dev `MEDIA_*` branch removed, `SvgHook`
     always wants `PhpOptimizer` and the new console command picks its
@@ -76,6 +82,10 @@ sites still on 8.1/8.2 should pin to v3.2.x.
     Walks `<assets_source_dir>` and `<media_dir>`, optimizes via SVGO
     if available else `PhpOptimizer`. Flags: `--dry-run` (list, don't
     write), `--force` (ignore cache). Honors `svg_optimize_enabled`.
+    The constructor takes an optional `OptimizerInterface` for test
+    injection; coverage is via end-to-end smoke in the test install
+    rather than a unit test (mirrors `InstallStubsCommand`'s
+    no-unit-test precedent — backfill candidate for a future cleanup).
   - **Vite build now walks `<media_dir>`** during `buildStart` (NOT
     `configureServer`, so dev-server start stays fast). Same SVGO
     invocation as the existing assets walk.
