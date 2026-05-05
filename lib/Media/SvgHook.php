@@ -2,6 +2,7 @@
 
 namespace Ynamite\ViteRex\Media;
 
+use rex_addon;
 use rex_extension;
 use rex_extension_point;
 use rex_file;
@@ -11,11 +12,21 @@ use Ynamite\ViteRex\Server;
 use Ynamite\ViteRex\Svg\PhpOptimizer;
 
 /**
- * Optimizes SVGs uploaded or replaced via the Redaxo media pool — but only
- * in staging/prod. In dev, the hook is a no-op: dev devs don't want a
- * shell-out fired on every test upload, and the Vite build (or the
- * `viterex:optimize-svgs` console command) will sweep the media pool
- * anyway when they're ready to clean up.
+ * Optimizes SVGs uploaded or replaced via the Redaxo media pool. The hook
+ * is a no-op in confirmed-dev environments (devs don't want a shell-out
+ * fired on every test upload — the Vite build or the
+ * `viterex:optimize-svgs` console command will sweep the media pool when
+ * they're ready). Anywhere else — staging, prod, or any install where we
+ * can't confirm dev — the hook runs and optimizes.
+ *
+ * "Confirmed dev" means: ydeploy is installed AND `getDeploymentStage()`
+ * returns 'dev'. Without ydeploy the stage helper falls through to 'dev'
+ * by default (see `Server::getDeploymentStage()`), so a bare
+ * `=== 'dev'` check would silently skip optimization on every ydeploy-less
+ * production install — including the `<script>` / `on*` stripping that's
+ * the security side-effect of the optimizer pass. We require ydeploy
+ * presence so absence of stage-detection defaults to running the optimizer
+ * (the safe choice) rather than skipping it.
  *
  * The engine is always `PhpOptimizer` here because the production runtime
  * isn't expected to have Node available — and even if it did, shelling out
@@ -33,7 +44,15 @@ final class SvgHook
     public static function register(): void
     {
         $handler = static function (rex_extension_point $ep): void {
-            if (Server::getDeploymentStage() === 'dev') {
+            // Only short-circuit when we can CONFIRM dev: ydeploy installed
+            // AND it reports dev. Without ydeploy, stage falls through to
+            // 'dev' by default — treating that as real dev would skip the
+            // optimizer (and its <script>/on* stripping) on prod installs
+            // that haven't installed ydeploy.
+            if (
+                Server::getDeploymentStage() === 'dev'
+                && rex_addon::get('ydeploy')->isAvailable()
+            ) {
                 return;
             }
             if ($ep->getParam('type') !== 'image/svg+xml') {
