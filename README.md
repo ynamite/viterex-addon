@@ -8,6 +8,8 @@ ViteRex bringt [Vite](https://vite.dev/) in REDAXO. Egal ob klassische Ordnerstr
 
 Konzeptionell inspiriert vom [laravel-vite-plugin](https://github.com/laravel/vite-plugin): Du registrierst ViteRex einmal, schreibst `REX_VITE` in dein Template, und das Addon kümmert sich um Dev-Server-Erkennung, Manifest-Auflösung, Preload-Tags und HMR.
 
+[Viterex-short.webm](https://github.com/user-attachments/assets/bcf2b29a-e61c-4511-aef8-09b552d2c7c1)
+
 ---
 
 ## Schnellstart
