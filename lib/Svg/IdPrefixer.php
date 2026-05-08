@@ -143,9 +143,9 @@ final class IdPrefixer
      * Always carries a `viterex-` namespace so prefixed names cannot collide
      * with the host page's own classes/ids.
      *
-     *   img/icon-foo.svg     → viterex-img-icon-foo
-     *   logo.svg             → viterex-logo
-     *   img/brand/logo-2.svg → viterex-img-brand-logo-2
+     *   img/icon-foo.svg     → img-icon-foo
+     *   logo.svg             → logo
+     *   img/brand/logo-2.svg → img-brand-logo-2
      */
     public function deriveStablePrefix(string $relativePath): string
     {

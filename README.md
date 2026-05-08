@@ -406,13 +406,13 @@ Die Integration ist konditional — sie aktiviert sich nur, wenn `block_peek` al
 
 ViteRex optimiert SVGs automatisch — sowohl Source-Dateien im Build als auch Mediapool-Uploads. Single Toggle in **ViteRex → Einstellungen → SVG-Optimierung**, default ON. Welche Engine läuft und wann sie läuft, hängt von der Oberfläche ab:
 
-| Surface          | Wann                                                | Engine                                            |
-| ---------------- | --------------------------------------------------- | ------------------------------------------------- |
-| Source-Assets    | `npm run dev` (server start) + `npm run build`      | SVGO (Node, via Vite-Plugin), 1:1 in-place        |
-| Vite copy-pipe   | `npm run build` (`viteStaticCopy` transform)        | SVGO                                              |
-| Mediapool        | `npm run build`                                     | SVGO (Vite-Plugin walked `<media_dir>`)           |
-| Mediapool        | Manuell: `bin/console viterex:optimize-svgs`        | SVGO wenn verfügbar, sonst `PhpOptimizer` (PHP)   |
-| Mediapool-Upload | `MEDIA_ADDED` / `MEDIA_UPDATED` (nur prod/staging)  | `PhpOptimizer` (Node-frei für die Live-Umgebung)  |
+| Surface          | Wann                                               | Engine                                           |
+| ---------------- | -------------------------------------------------- | ------------------------------------------------ |
+| Source-Assets    | `npm run dev` (server start) + `npm run build`     | SVGO (Node, via Vite-Plugin), 1:1 in-place       |
+| Vite copy-pipe   | `npm run build` (`viteStaticCopy` transform)       | SVGO                                             |
+| Mediapool        | `npm run build`                                    | SVGO (Vite-Plugin walked `<media_dir>`)          |
+| Mediapool        | Manuell: `bin/console viterex:optimize-svgs`       | SVGO wenn verfügbar, sonst `PhpOptimizer` (PHP)  |
+| Mediapool-Upload | `MEDIA_ADDED` / `MEDIA_UPDATED` (nur prod/staging) | `PhpOptimizer` (Node-frei für die Live-Umgebung) |
 
 In **dev** ist der Mediapool-Upload-Hook ein No-op — kein SVGO-Shell-out bei jedem Test-Upload. Räume mit `npm run build` oder dem Console-Command auf, wenn du willst.
 
@@ -438,7 +438,7 @@ Engine-Wahl: SVGO wenn `npx svgo` auf PATH, sonst `PhpOptimizer`. Honors `svg_op
 
 Wer mehrere SVGs auf derselben Seite via `Assets::inline('img/foo.svg')` einbindet (typisch: Icons, Illustrationen aus Figma/Illustrator), ist standardmässig kollisionsanfällig: SVG-`<style>`-Blöcke haben **document-level scope**, sobald die SVG inline im HTML steht. Zwei SVGs mit `.cls-1`-Selectoren (Standard-Export-Naming) bluten gegenseitig in alle Pfade auf der Seite, die zufällig dieselbe Klasse tragen — auch in unbeteiligte SVGs oder HTML-Elemente. Dasselbe gilt für `<filter id="x">`, `<linearGradient id="x">`, `<symbol id="x">` und alle internen Referenzen darauf (`url(#x)`, `<use href="#x">`).
 
-`Assets::inline()` löst das automatisch: jede inline-eingebundene SVG kriegt zur Laufzeit einen stabilen, datei-abgeleiteten Prefix (`viterex-<path-slug>-…`) auf alle `id`/`class`-Attribute und alle internen Referenzen. Beispiel:
+`Assets::inline()` löst das automatisch: jede inline-eingebundene SVG kriegt zur Laufzeit einen stabilen, datei-abgeleiteten Prefix (`<path-slug>-…`) auf alle `id`/`class`-Attribute und alle internen Referenzen. Beispiel:
 
 ```svg
 <!-- src/assets/img/icon-foo.svg -->
@@ -453,9 +453,9 @@ Wer mehrere SVGs auf derselben Seite via `Assets::inline('img/foo.svg')` einbind
 
 ```svg
 <svg>
-  <style>.viterex-img-icon-foo-cls-1 { fill: red }</style>
-  <path class="viterex-img-icon-foo-cls-1" id="viterex-img-icon-foo-head"/>
-  <use href="#viterex-img-icon-foo-head"/>
+  <style>.img-icon-foo-cls-1 { fill: red }</style>
+  <path class="img-icon-foo-cls-1" id="img-icon-foo-head"/>
+  <use href="#img-icon-foo-head"/>
 </svg>
 ```
 

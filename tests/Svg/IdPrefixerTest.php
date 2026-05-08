@@ -101,10 +101,10 @@ final class IdPrefixerTest extends TestCase
     public function testStablePrefixDerivation(): void
     {
         $p = new IdPrefixer();
-        $this->assertSame('viterex-img-icon-foo', $p->deriveStablePrefix('img/icon-foo.svg'));
-        $this->assertSame('viterex-logo', $p->deriveStablePrefix('logo.svg'));
-        $this->assertSame('viterex-img-brand-logo-2', $p->deriveStablePrefix('img/brand/logo-2.svg'));
-        $this->assertSame('viterex-svg', $p->deriveStablePrefix('___.svg'));
+        $this->assertSame('img-icon-foo', $p->deriveStablePrefix('img/icon-foo.svg'));
+        $this->assertSame('logo', $p->deriveStablePrefix('logo.svg'));
+        $this->assertSame('img-brand-logo-2', $p->deriveStablePrefix('img/brand/logo-2.svg'));
+        $this->assertSame('svg', $p->deriveStablePrefix('___.svg'));
     }
 
     /**
