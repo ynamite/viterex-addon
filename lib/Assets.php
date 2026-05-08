@@ -139,8 +139,10 @@ final class Assets
      * selectors (typical Figma/Illustrator export) collide because their
      * `<style>` blocks have document-level scope when inlined into HTML.
      * Result is cached at `rex_path::addonCache('viterex_addon', 'inline-svg/')`
-     * keyed on `sha1(path + ':' + content)`, so the prefixing cost is paid
-     * once per (file, contents) pair. Bypassed when `svg_optimize_enabled`
+     * keyed on `sha1(path + ':' + content + ':v' + IdPrefixer::VERSION)` —
+     * the version segment invalidates old cache entries when the prefixer's
+     * behavior changes. Old entries become orphaned cruft on disk; the cache
+     * is non-critical and wiped on uninstall. Bypassed when `svg_optimize_enabled`
      * is off, or when the file contains `<!-- viterex:no-prefix -->`.
      */
     public static function inline(string $relativePath): string
@@ -158,7 +160,7 @@ final class Assets
         }
         $cachePath = rex_path::addonCache(
             'viterex_addon',
-            'inline-svg/' . sha1($relativePath . ':' . $content) . '.svg',
+            'inline-svg/' . sha1($relativePath . ':' . $content . ':v' . IdPrefixer::VERSION) . '.svg',
         );
         $cached = rex_file::get($cachePath);
         if (is_string($cached) && $cached !== '') {

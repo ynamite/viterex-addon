@@ -16,7 +16,10 @@ namespace Ynamite\ViteRex\Svg;
  * What gets rewritten:
  *
  *   - `id="X"` (both quote styles) → `id="<prefix>-X"`
- *   - `class="X Y Z"` (any quote style) → `class="<prefix>-X <prefix>-Y <prefix>-Z"`
+ *   - `class="X Y Z"` (any quote style) → tokens are prefixed only when they
+ *     also appear as class selectors inside the SVG's own `<style>` block;
+ *     external classes (Tailwind utilities, project CSS, BEM) pass through
+ *     unchanged so host-page CSS continues to match them
  *   - `url(#X)` everywhere (attrs, inline `style`, inside `<style>`) → `url(#<prefix>-X)`
  *   - `href="#X"` / `xlink:href="#X"` (fragment-only) → with prefix; full URLs untouched
  *   - inside `<style>` blocks: `.X` class selectors (always) and `#X` id
@@ -26,9 +29,12 @@ namespace Ynamite\ViteRex\Svg;
  *
  * Not handled (rare in icon-style SVGs; documented as known limits):
  *
- *   - CSS `@media` / `@supports` / `@keyframes` blocks with their own nested
- *     selectors (the simple `<style>` body scan rewrites every `.X` it sees,
- *     which is usually fine but can over-prefix rules that target host CSS)
+ *   - CSS `@media` / `@supports` / `@keyframes` body scanning is shallow:
+ *     every `.X` inside `<style>` is treated as a defined class, even if
+ *     the selector targets a host-page class rather than an SVG-local one
+ *   - Attribute selectors like `[class~="foo"]` are not parsed; classes
+ *     reachable only through them must also be defined via a plain `.foo`
+ *     rule for the auto-scope to pick them up
  *   - SMIL `from`/`to` references to other element IDs
  *   - References inside `<foreignObject>` HTML
  *
@@ -39,6 +45,8 @@ namespace Ynamite\ViteRex\Svg;
  */
 final class IdPrefixer
 {
+    public const VERSION = 2;
+
     public function prefix(string $svg, string $prefix): string
     {
         if ($svg === '' || $prefix === '') {
@@ -52,6 +60,11 @@ final class IdPrefixer
         if (preg_match_all('/\bid\s*=\s*["\']([^"\']+)["\']/i', $svg, $m)) {
             $idSet = array_flip(array_unique($m[1]));
         }
+
+        // Collect classes declared inside <style>. Used to filter `class="..."`
+        // token rewriting — only tokens defined locally get prefixed; Tailwind
+        // utilities and other host-styled classes pass through untouched.
+        $classSet = self::collectDefinedClasses($svg);
 
         // Rewrite <style> bodies first. Doing this before the global url()
         // pass means url() inside <style> still gets rewritten (step 4) and
@@ -93,12 +106,12 @@ final class IdPrefixer
         // class="X Y Z" / class='X Y Z'
         $svg = preg_replace_callback(
             '/\bclass\s*=\s*"([^"]+)"/i',
-            fn(array $m): string => 'class="' . self::prefixTokens($m[1], $prefix) . '"',
+            fn(array $m): string => 'class="' . self::prefixTokens($m[1], $prefix, $classSet) . '"',
             $svg,
         ) ?? $svg;
         $svg = preg_replace_callback(
             "/\bclass\s*=\s*'([^']+)'/i",
-            fn(array $m): string => "class='" . self::prefixTokens($m[1], $prefix) . "'",
+            fn(array $m): string => "class='" . self::prefixTokens($m[1], $prefix, $classSet) . "'",
             $svg,
         ) ?? $svg;
 
@@ -140,8 +153,6 @@ final class IdPrefixer
     /**
      * Derive a stable, unique prefix from a relative file path. Letters and
      * digits are preserved; everything else collapses to a single hyphen.
-     * Always carries a `viterex-` namespace so prefixed names cannot collide
-     * with the host page's own classes/ids.
      *
      *   img/icon-foo.svg     → img-icon-foo
      *   logo.svg             → logo
@@ -152,16 +163,38 @@ final class IdPrefixer
         $stem = (string) preg_replace('/\.svg$/i', '', $relativePath);
         $slug = strtolower((string) preg_replace('/[^A-Za-z0-9]+/', '-', $stem));
         $slug = trim($slug, '-');
-        return 'viterex-' . ($slug !== '' ? $slug : 'svg');
+        return $slug !== '' ? $slug : 'svg';
     }
 
-    private static function prefixTokens(string $value, string $prefix): string
+    private static function prefixTokens(string $value, string $prefix, array $definedClasses): string
     {
         $tokens = preg_split('/\s+/', trim($value)) ?: [];
         $prefixed = array_map(
-            static fn(string $c): string => $c === '' ? '' : $prefix . '-' . $c,
+            static fn(string $c): string => ($c === '' || !isset($definedClasses[$c]))
+                ? $c
+                : $prefix . '-' . $c,
             $tokens,
         );
         return implode(' ', $prefixed);
+    }
+
+    /**
+     * Walk every <style>...</style> block and collect class names that appear
+     * as selectors. Used by prefixTokens() to skip externally-defined utility
+     * classes (Tailwind, project CSS) and only rewrite locally-defined ones.
+     */
+    private static function collectDefinedClasses(string $svg): array
+    {
+        $set = [];
+        if (preg_match_all('/<style\b[^>]*>(.*?)<\/style>/is', $svg, $blocks)) {
+            foreach ($blocks[1] as $body) {
+                if (preg_match_all('/\.([A-Za-z_-][\w-]*)/', $body, $names)) {
+                    foreach ($names[1] as $name) {
+                        $set[$name] = true;
+                    }
+                }
+            }
+        }
+        return $set;
     }
 }

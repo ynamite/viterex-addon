@@ -1,5 +1,67 @@
 # Changelog
 
+## **Version 3.4.0**
+
+### Fixed
+
+- **Tailwind utility classes on inline SVG elements are no longer mangled
+  by `IdPrefixer`** (`lib/Svg/IdPrefixer.php`). Previously, every token in
+  a `class="..."` attribute on an SVG element got prefixed with the
+  filename-derived namespace, regardless of whether the class was actually
+  defined inside the SVG's own `<style>` block — so
+  `class="fill-blue-500 hover:fill-blue-700"` came out as
+  `class="img-foo-fill-blue-500 img-foo-hover:fill-blue-700"` and
+  Tailwind's external utility CSS no longer matched. Auto-scope now:
+  `IdPrefixer` walks every `<style>...</style>` block and collects class
+  names that appear as selectors into a set; `prefixTokens()` only rewrites
+  `class="..."` tokens that are in that set. Class definitions inside
+  `<style>` continue to be prefixed (they're in the set by construction);
+  external classes (Tailwind, project CSS, BEM) pass through unchanged so
+  host-page CSS keeps matching them. The headline two-SVG no-collision
+  scenario is unaffected — `<style>`-declared classes still get scoped
+  per-SVG. Mirrors the existing `$idSet` pattern that protects hex colours
+  in `<style>` from being treated as ID references.
+
+  Cache invalidation: `Assets::inline()`'s cache key now bakes in
+  `IdPrefixer::VERSION` (currently `2`), so existing v3.3.x cached SVGs
+  (over-prefixed) are bypassed automatically on first inline call after
+  upgrade. Old cache files become orphaned cruft on disk; the cache is
+  non-critical and wiped on uninstall.
+
+  Known limitation: attribute selectors like `[class~="foo"]` are not
+  parsed; classes only reachable that way must also be defined via a
+  plain `.foo` rule for the auto-scope to pick them up. Documented in the
+  `IdPrefixer` class docblock.
+
+- **`IdPrefixer::deriveStablePrefix()` no longer prepends `viterex-` to the
+  derived slug** (`lib/Svg/IdPrefixer.php`). Commit `9d259f1` (post-3.3.1)
+  removed the `viterex-` namespace from the docblock examples, the README,
+  and the unit test, but the function body itself still returned
+  `'viterex-' . $slug`. `testStablePrefixDerivation` was failing on every
+  run against a function that didn't match any of its three sources of
+  truth. Function now returns the bare slug
+  (`img/icon-foo.svg → img-icon-foo`), restoring consistency.
+
+### Added
+
+- **`StubsInstaller::installFromDir()` accepts an optional `?bool $backup`
+  parameter** (default `true`). When `true` and `$overwrite` is also
+  `true`, existing files are backed up to `<file>.bak.<timestamp>` before
+  being replaced (existing behavior). When `false`, overwrites happen
+  in-place without backups — useful for downstream addons that ship their
+  own update flow and don't want backup litter. Backwards-compatible:
+  the default preserves the previous behavior.
+
+### Internal
+
+- Four new tests in `tests/Svg/IdPrefixerTest.php` for the auto-scope rule:
+  external-only classes untouched, mixed local + external classes,
+  Tailwind 4 escaped-colon tokens (`hover:fill-blue-700`), and multiple
+  `<style>` blocks contributing to the defined-set. `testPrefixesClassAttributes`
+  updated to include a matching `<style>` block — its previous fixture
+  (no `<style>`, only a `class="cls-1"` attribute) would no longer be
+  prefixed under the new auto-scope rule.
+
 ## **Version 3.3.0**
 
 ### ⚠️ Breaking — minimum PHP bumped to 8.3

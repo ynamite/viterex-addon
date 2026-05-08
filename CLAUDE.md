@@ -20,7 +20,7 @@ npm run build       # → outputs assets/badge/{viterex-badge.js,viterex-badge.c
 npm run watch       # rebuild on change to assets-src/*
 ```
 
-The `prebuild` hook runs `scripts/sync-version.js` to mirror `package.yml` → `package.json`. **`package.yml` is the single source of truth for the addon version** — never bump `package.json` directly.
+**`package.yml` is the single source of truth for the addon version** — never bump `package.json` directly. After bumping `package.yml`, run `npm run version:sync` to mirror the value into `package.json`. (`npm run build` also runs this via its `prebuild` hook, so a build covers it implicitly — but you don't need a full build just to sync the version.)
 
 **The user-project Vite chain** lives in `stubs/` — those files are copied into a Redaxo project root by `StubsInstaller`. The user runs `npm install && npm run dev` _in their project_, not here. Don't run `vite dev` in this repo; the local `vite.config.js` is wired to build the badge to `../assets/badge`, not to serve a dev server.
 
@@ -86,7 +86,14 @@ Tagging a GitHub release triggers `.github/workflows/publish-to-redaxo.yml`:
 
 The release body becomes the addon description. Bump `package.yml` first, then commit, then tag.
 
-### Important: Always update the `CLAUDE.md`, `CHANGELOG.md`, `README.md` and run `npm run build` to sync the badge assets before tagging a release. The `package.yml` version must match the GitHub release tag. Then create a new tag and a release.
+### Important — release checklist
+
+Before tagging a release:
+
+1. Update `CLAUDE.md`, `CHANGELOG.md`, `README.md`.
+2. Bump `package.yml` and run `npm run version:sync` to mirror the new version into `package.json`. The `package.yml` version must match the GitHub release tag.
+3. Run `npm run build` **only when badge sources changed** (anything under `assets-src/` or other inputs to the badge build at `assets/badge/`). When no asset sources changed in the release, skip the build — rebuilding without source changes just churns committed artifacts.
+4. Commit, then create the tag and release.
 
 ## Things to be careful about
 
@@ -97,6 +104,7 @@ The release body becomes the addon description. Bump `package.yml` first, then c
 - **CSP/nonce limitation**: dev-mode `<script type="module">` tags are emitted without nonces. Strict CSP with `script-src 'self'` will block HMR. Documented in README "Known limitations".
 - **SVGO config has one canonical source: `assets/svgo-config.mjs`.** Both runtimes consume it directly — the Vite plugin via `import VITEREX_SVGO_CONFIG from "./svgo-config.mjs"`, `SvgoCli` via `npx svgo --config <abs-path>`. Never define a parallel plugin list in PHP or JS — they will silently drift (this happened in 3.3.0 development). If per-file extensions are ever needed, splice into the canonical config at the call site (both runtimes can read the file and extend it).
 - **`IdPrefixer` runs at `Assets::inline()` time only — not at the source-mutation pass.** Reason: the prefix is filename-derived, so baking it onto disk would commit a Viterex-specific class-name scheme into the source SVG and prevent the file's reuse as `<img src>` / `background-image`. Inline-time application keeps disk files generic; the cache (`rex_path::addonCache('viterex_addon', 'inline-svg/')`) absorbs the rewrite cost so subsequent inlines are pure file reads. Per-file opt-out: `<!-- viterex:no-prefix -->` magic comment anywhere in the SVG.
+- **`IdPrefixer` only scopes locally-`<style>`-defined classes (since v3.4.0).** Class tokens in `class="..."` are prefixed only when a matching class selector appears in the SVG's own `<style>` block. External classes (Tailwind utilities, project CSS, BEM) pass through unchanged so host-page CSS keeps targeting them. To scope a class, define it in the SVG's `<style>`. The cache key at `Assets::inline()` is versioned by `IdPrefixer::VERSION` — bump that constant when changing the prefixer's behavior so old cache entries get bypassed on upgrade.
 
 ## Roadmap
 

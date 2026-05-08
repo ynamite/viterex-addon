@@ -459,7 +459,7 @@ Wer mehrere SVGs auf derselben Seite via `Assets::inline('img/foo.svg')` einbind
 </svg>
 ```
 
-**Was umgeschrieben wird:** `id="X"`, `class="X Y"`, `url(#X)`, `href="#X"` / `xlink:href="#X"` (nur Fragment-Refs, externe URLs bleiben unangetastet), sowie `.X`-Selectoren in `<style>`-Blöcken. `#X`-Selectoren in `<style>` werden nur umgeschrieben, wenn `X` auch als echtes `id="X"` im Dokument vorkommt — Hex-Farben wie `#fff` / `#abc` bleiben so unberührt.
+**Was umgeschrieben wird:** `id="X"`, `url(#X)`, `href="#X"` / `xlink:href="#X"` (nur Fragment-Refs, externe URLs bleiben unangetastet), sowie `.X`-Selectoren in `<style>`-Blöcken. Bei `class="X Y Z"` werden **nur** Tokens umgeschrieben, die auch als `.X`-Selector im SVG-eigenen `<style>` definiert sind — externe Klassen (Tailwind-Utilities, Projekt-CSS, BEM) bleiben unangetastet, damit Host-Page-CSS weiterhin matcht. `#X`-Selectoren in `<style>` werden nur umgeschrieben, wenn `X` auch als echtes `id="X"` im Dokument vorkommt — Hex-Farben wie `#fff` / `#abc` bleiben so unberührt.
 
 **Cache:** Das Ergebnis wird unter `rex_path::addonCache('viterex_addon', 'inline-svg/<sha1>.svg')` gecached, gekeyed auf `path + content`. Die Prefixing-Kosten fallen nur einmal pro (Datei, Inhalt)-Paar an. Source-Files auf der Disk bleiben **unberührt** — der Prefix entsteht nur zur Inline-Zeit, sodass dieselbe Datei weiterhin als `<img src="…">` oder `background-image: url()` funktioniert.
 

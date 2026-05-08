@@ -17,7 +17,7 @@ final class IdPrefixerTest extends TestCase
 
     public function testPrefixesClassAttributes(): void
     {
-        $svg = '<svg><path class="cls-1"/><circle class="cls-1 cls-2"/></svg>';
+        $svg = '<svg><style>.cls-1{}.cls-2{}</style><path class="cls-1"/><circle class="cls-1 cls-2"/></svg>';
         $out = (new IdPrefixer())->prefix($svg, 'p');
         $this->assertStringContainsString('class="p-cls-1"', $out);
         $this->assertStringContainsString('class="p-cls-1 p-cls-2"', $out);
@@ -123,5 +123,53 @@ final class IdPrefixerTest extends TestCase
         $this->assertStringContainsString('class="a-cls-1"', $outA);
         $this->assertStringContainsString('.b-cls-1{fill:blue}', $outB);
         $this->assertStringContainsString('class="b-cls-1"', $outB);
+    }
+
+    /**
+     * External utility classes (Tailwind, project CSS) added to SVG elements
+     * via `class="..."` must not be prefixed — they're meant to be styled by
+     * the host page's CSS, and prefixing breaks that.
+     */
+    public function testExternalOnlyClassesUntouched(): void
+    {
+        $svg = '<svg><path class="fill-blue-500"/></svg>';
+        $out = (new IdPrefixer())->prefix($svg, 'p');
+        $this->assertStringContainsString('class="fill-blue-500"', $out);
+        $this->assertStringNotContainsString('p-fill-blue-500', $out);
+    }
+
+    /**
+     * When local and external classes are mixed in the same `class="..."`,
+     * only the locally-defined ones get prefixed.
+     */
+    public function testMixedLocalAndExternalClasses(): void
+    {
+        $svg = '<svg><style>.cls-1{fill:red}</style><path class="cls-1 fill-blue-500 hover:fill-blue-700"/></svg>';
+        $out = (new IdPrefixer())->prefix($svg, 'p');
+        $this->assertStringContainsString('class="p-cls-1 fill-blue-500 hover:fill-blue-700"', $out);
+        $this->assertStringContainsString('.p-cls-1{fill:red}', $out);
+    }
+
+    /**
+     * Tailwind 4 escaped-colon classes (`hover:...`, `md:...`) appear as a
+     * single token in the `class="..."` attribute. Without a matching local
+     * `<style>` definition, they pass through unchanged.
+     */
+    public function testTailwindEscapedColonClassesUntouched(): void
+    {
+        $svg = '<svg><path class="hover:fill-blue-700 md:flex"/></svg>';
+        $out = (new IdPrefixer())->prefix($svg, 'p');
+        $this->assertStringContainsString('class="hover:fill-blue-700 md:flex"', $out);
+    }
+
+    /**
+     * Multiple `<style>` blocks all contribute classes to the defined-set
+     * used by the auto-scope filter.
+     */
+    public function testMultipleStyleBlocksContributeToSet(): void
+    {
+        $svg = '<svg><style>.a{}</style><style>.b{}</style><path class="a b external"/></svg>';
+        $out = (new IdPrefixer())->prefix($svg, 'p');
+        $this->assertStringContainsString('class="p-a p-b external"', $out);
     }
 }
