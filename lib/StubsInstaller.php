@@ -54,6 +54,7 @@ final class StubsInstaller
      * @param array{dependencies?: array<string,string>, devDependencies?: array<string,string>}|null $packageDeps
      *        Optional npm dependency merge. Adds these into the user's project package.json (additive,
      *        higher version wins on conflict). Pass null to skip the merge step.
+     * @param bool|null $backup Whether to back up existing files when $overwrite is true. Defaults to true.
      * @return array{written: list<string>, skipped: list<string>, backedUp: list<string>, packageDepsMerged?: int}
      */
     public static function installFromDir(
@@ -61,6 +62,7 @@ final class StubsInstaller
         array $stubsMap,
         bool $overwrite = false,
         ?array $packageDeps = null,
+        ?bool $backup = true
     ): array {
         $written = [];
         $skipped = [];
@@ -76,9 +78,11 @@ final class StubsInstaller
                     $skipped[] = $relTarget;
                     continue;
                 }
-                $backupPath = $target . '.bak.' . date('Ymd-His');
-                rex_file::copy($target, $backupPath);
-                $backedUp[] = $relTarget . ' → ' . basename($backupPath);
+                if ($backup) {
+                    $backupPath = $target . '.bak.' . date('Ymd-His');
+                    rex_file::copy($target, $backupPath);
+                    $backedUp[] = $relTarget . ' → ' . basename($backupPath);
+                }
             }
             rex_dir::create(dirname($target));
             rex_file::put($target, self::transform($source, $sourcePath));
