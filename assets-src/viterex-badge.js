@@ -38,7 +38,7 @@ if (!scriptTag) {
 			<div class="${classes.label}"><span><b>R</b></span><span class="${classes.version}">${rexVersion}</span></div>
 			<div class="${classes.label}"><span><b>Vite</b>Rex</span><span class="${classes.version}">${version}</span></div>
 			<div class="${classes.infoWrapper}">
-				<span class="${classes.label}">${stage}</span>
+				<span class="${classes.label} ${viteRunning ? classes.labelOn : classes.labelOff}">${stage}</span>
 				<span class="${classes.dot} ${viteRunning ? classes.dotOn : classes.dotOff}" title="${dotTitle}"></span>
 				${branchHtml}
 			</div>
