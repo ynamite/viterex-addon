@@ -1,5 +1,10 @@
 # Changelog
 
+## **Version 3.4.1**
+
+- Fix formatting and lint in several files
+- Add support for src fragment directories
+
 ## **Version 3.4.0**
 
 ### Fixed
@@ -285,7 +290,7 @@ sites still on 8.1/8.2 should pin to v3.2.x.
 
 ### Added
 
-- **`viterex:install-stubs` Symfony Console command** (`lib/Console/InstallStubsCommand.php`, registered via `console_commands:` in `package.yml`). Programmatic counterpart of the *AddOns → ViteRex → Settings → Install stubs* button — reuses the same `Ynamite\ViteRex\StubsInstaller::run()` path, so output, backups, and `VITEREX_INSTALL_STUBS` extension-point dispatch are identical. Intended for automated install flows that scaffold a project without a browser session (e.g. `create-viterex`). Default behaviour skips existing files; pass `--overwrite` to back them up (`.bak.<timestamp>`) and replace. Print `-v` for the list of written paths.
+- **`viterex:install-stubs` Symfony Console command** (`lib/Console/InstallStubsCommand.php`, registered via `console_commands:` in `package.yml`). Programmatic counterpart of the _AddOns → ViteRex → Settings → Install stubs_ button — reuses the same `Ynamite\ViteRex\StubsInstaller::run()` path, so output, backups, and `VITEREX_INSTALL_STUBS` extension-point dispatch are identical. Intended for automated install flows that scaffold a project without a browser session (e.g. `create-viterex`). Default behaviour skips existing files; pass `--overwrite` to back them up (`.bak.<timestamp>`) and replace. Print `-v` for the list of written paths.
 
   ```bash
   php bin/console viterex:install-stubs            # write only missing files
