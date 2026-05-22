@@ -8,10 +8,16 @@
  *  file that was distributed with this source code.
  */
 
+use rex_fragment;
+use rex_path;
 use Ynamite\ViteRex\Badge;
 use Ynamite\ViteRex\Media\SvgHook;
 use Ynamite\ViteRex\OutputFilter;
 use Ynamite\ViteRex\Server;
+
+rex_fragment::addDirectory(rex_path::addon('project/fragments'));
+rex_fragment::addDirectory(rex_path::base('src/fragments'));
+
 
 if ('' !== (string) rex_request::request('viterex_clear_cache', 'string', '')) {
     if (rex_backend_login::hasSession() && rex_csrf_token::factory('viterex_badge')->isValid()) {
