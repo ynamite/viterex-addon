@@ -154,9 +154,7 @@ async function loadSvgo() {
 				const mod = await import("svgo");
 				return mod.optimize;
 			} catch {
-				console.warn(
-					"[viterex] svgo not installed — SVG optimization disabled. Run `npm install` to enable.",
-				);
+				console.warn("[viterex] svgo not installed — SVG optimization disabled. Run `npm install` to enable.");
 				return null;
 			}
 		})();
@@ -382,9 +380,7 @@ export default function viterex(options = {}) {
 	// `structure.json` yet — still gets optimization. Only an explicit
 	// `false` (user toggled off in Settings) disables.
 	const mediaDirFs = structure.media_dir ? path.resolve(cwd, structure.media_dir) : null;
-	const cacheFs = structure.cache_dir
-		? path.resolve(cwd, structure.cache_dir, "svg-optimized.json")
-		: null;
+	const cacheFs = structure.cache_dir ? path.resolve(cwd, structure.cache_dir, "svg-optimized.json") : null;
 	const svgOptimize = svgOptimizePlugin({
 		enabled: structure.svg_optimize_enabled !== false,
 		srcDir: assetsSourceFs,

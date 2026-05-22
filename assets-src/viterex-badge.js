@@ -28,9 +28,7 @@ if (!scriptTag) {
 
 	const badge = document.createElement("div");
 	badge.id = "viterex-badge";
-	badge.className = [classes.wrapper, stageClass, branchAlert ? classes.branchAlert : ""]
-		.filter(Boolean)
-		.join(" ");
+	badge.className = [classes.wrapper, stageClass, branchAlert ? classes.branchAlert : ""].filter(Boolean).join(" ");
 	badge.title = `ViteRex • ${stage} • vite ${viteRunning ? "running" : "off"}`;
 
 	badge.innerHTML = `

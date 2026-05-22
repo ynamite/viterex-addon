@@ -10,9 +10,5 @@ import viterex, { fixTailwindFullReload } from "__VITEREX_PLUGIN_IMPORT_PATH__";
 // e.g. `import massif from "./public/assets/addons/massif/massif-vite-plugin.js";`
 // and call `massif()` in the plugins array — it wraps `viterex()` internally.
 export default defineConfig({
-	plugins: [
-		tailwindcss(),
-		fixTailwindFullReload(),
-		viterex(),
-	],
+	plugins: [tailwindcss(), fixTailwindFullReload(), viterex()],
 });

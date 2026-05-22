@@ -1,6 +1,3 @@
 {
-  "include": [
-    "assets-src/**/*",
-    "scripts/**/*",
-  ]
+	"include": ["assets-src/**/*", "scripts/**/*"]
 }
