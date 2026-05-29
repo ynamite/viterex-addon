@@ -1,5 +1,9 @@
 # Changelog
 
+## **Version 3.4.2**
+
+- Remove unused imports from boot.php
+
 ## **Version 3.4.1**
 
 - Fix formatting and lint in several files
