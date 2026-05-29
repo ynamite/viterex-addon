@@ -8,8 +8,7 @@
  *  file that was distributed with this source code.
  */
 
-use rex_fragment;
-use rex_path;
+
 use Ynamite\ViteRex\Badge;
 use Ynamite\ViteRex\Media\SvgHook;
 use Ynamite\ViteRex\OutputFilter;
